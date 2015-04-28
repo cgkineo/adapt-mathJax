@@ -1,0 +1,12 @@
+"_mathJax": {
+	"_inlineConfig": {
+		"extensions": [
+			"tex2jax.js"
+		],
+		"jax": [
+			"input/TeX",
+			"output/HTML-CSS"
+		]
+	},
+	"_src": "http://cdn.mathjax.org/mathjax/latest/MathJax.js"
+}
