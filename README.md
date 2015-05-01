@@ -16,7 +16,7 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 			"output/HTML-CSS"
 		]
 	},
-	"_src": "http://cdn.mathjax.org/mathjax/latest/MathJax.js"
+	"_src": "//cdn.mathjax.org/mathjax/latest/MathJax.js"
 }
 ```
 * If this needs to be overridden, add the above to `config.json` and modify where required.

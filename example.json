@@ -8,5 +8,5 @@
 			"output/HTML-CSS"
 		]
 	},
-	"_src": "http://cdn.mathjax.org/mathjax/latest/MathJax.js"
+	"_src": "//cdn.mathjax.org/mathjax/latest/MathJax.js"
 }

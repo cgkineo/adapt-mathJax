@@ -25,7 +25,7 @@ define(function(require) {
 		var inlineConfig = config && config._inlineConfig ? config._inlineConfig :
 			{ "extensions": ["tex2jax.js"], "jax": ["input/TeX", "output/HTML-CSS"] };
 		var src = config && config._src ? config._src :
-			"http://cdn.mathjax.org/mathjax/latest/MathJax.js";
+			"//cdn.mathjax.org/mathjax/latest/MathJax.js";
 
 		script += hideLoadingDiv + hideLoadingMessages + "MathJax.Hub.Config(" +
 			JSON.stringify(inlineConfig, null, "\t") + ");</script>" +
