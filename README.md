@@ -1,4 +1,4 @@
-# adapt-mathJax
+# MathJax
 
 An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 
@@ -35,6 +35,6 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 \\[f(x) = \\frac{1}{1+x}\\]
 ```
 * Remember to escape any backslashes with an additional backslash `\`.
-* The Adapt loading screen is shown until MathJax has finished processing.
+* On menu/page load, the Adapt loading screen is shown until MathJax has finished processing.
 * MathJax processing messages are styled to mimic the Adapt loading screen.
 * MathJax file loading messages are hidden.

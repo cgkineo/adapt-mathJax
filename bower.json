@@ -1,14 +1,15 @@
 {
-  "name": "adapt-mathJax",
-  "homepage": "https://github.com/cgkineo/adapt-mathJax",
-  "authors": [
-    "Tom Greenfield"
-  ],
-  "description": "An extension to load MathJax into Adapt.",
-  "main": "/js/adapt-mathJax.js",
-  "keywords": [
-    "adapt-plugin",
-    "adapt-extension"
-  ],
-  "license": "GPLv3"
+	"name": "adapt-mathJax",
+	"version": "0.1.1",
+	"description": "An extension to load MathJax into Adapt.",
+	"main": "/js/adapt-mathJax.js",
+	"keywords": [
+		"adapt-plugin",
+		"adapt-extension"
+	],
+	"authors": [
+		"Tom Greenfield"
+	],
+	"license": "GPL-3.0",
+	"homepage": "https://github.com/cgkineo/adapt-mathJax"
 }

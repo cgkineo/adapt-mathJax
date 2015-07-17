@@ -45,8 +45,12 @@ define(function(require) {
 			}
 		})
 		.on("popup:opened", function($el) {
+			var $el = $el ? $el[0] : undefined;
+
 			_.defer(function() {
-				MathJax.Hub.Queue(["Typeset", MathJax.Hub, $el ? $el[0] : undefined]);
+				MathJax.Hub.Queue(["Typeset", MathJax.Hub, $el], function() {
+					Adapt.trigger("device:resize");
+				});
 			});
 		});
 
