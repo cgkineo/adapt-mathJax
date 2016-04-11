@@ -1,7 +1,11 @@
 {
 	"name": "adapt-mathJax",
+	"repository": "git://github.com/cgkineo/adapt-mathJax.git",
 	"version": "0.1.1",
+	"framework": "^2.0.0",
+	"homepage": "https://github.com/cgkineo/adapt-mathJax"
 	"description": "An extension to load MathJax into Adapt.",
+	"displayName": "MathJax",
 	"main": "/js/adapt-mathJax.js",
 	"keywords": [
 		"adapt-plugin",
@@ -10,6 +14,6 @@
 	"authors": [
 		"Tom Greenfield"
 	],
-	"license": "GPL-3.0",
-	"homepage": "https://github.com/cgkineo/adapt-mathJax"
+	"targetAttribute": "_mathJax",
+	"license": "GPLv3"
 }

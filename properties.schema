@@ -1,0 +1,74 @@
+{
+  "type":"object",
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "id": "http://jsonschema.net",
+  "required":false,
+  "properties":{
+    "pluginLocations": {
+      "type":"object",
+      "required":true,
+      "properties":{
+        "config": {
+          "type":"object",
+          "properties": {
+            "_mathJax": {
+              "type":"object",
+              "required":false,
+              "legend": "MathJax",
+              "properties":{
+                "_src": {
+                  "type":"string",
+                  "required":false,
+                  "title": "MathJax script location",
+                  "inputType": "Text",
+                  "validators": ["url"],
+		  "help": "URL of the MathJax library. Only needed if you want to specify something other than the default (cdn.mathjax.org/mathjax/latest/MathJax.js)"
+                },
+		"_inlineConfig": {
+                  "type": "object",
+                  "required": false,
+		  "legend": "Configuration",
+		  "properties": {
+		    "extensions": {
+		      "type": "array",
+		      "title": "Extensions",
+		      "inputType": "List",
+		      "required":false,
+		      "default": ["tex2jax.js"],
+		      "validators": [],
+		      "help": "A comma-separated list of extensions to load at startup."
+		    },
+		    "jax": {
+		      "type": "array",
+		      "title": "Jax",
+		      "inputType": "List",
+		      "required":false,
+		      "default": ["input/TeX","output/HTML-CSS"],
+		      "validators": [],
+		      "help": "A comma-separated list of input and output jax to initialize at startup"
+		    }
+		  }
+		}
+              }
+            }
+          }
+        },
+        "course": {
+          "type":"object"
+        },
+        "contentobject": {
+          "type":"object"
+        },
+        "article": {
+          "type":"object"
+        },
+        "block": {
+          "type":"object"
+        },
+        "component": {
+          "type":"object"
+        }
+      }
+    }
+  }
+}
