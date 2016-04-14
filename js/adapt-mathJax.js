@@ -1,57 +1,49 @@
-/*
-* MathJax
-* License - https://github.com/adaptlearning/adapt_framework/blob/master/LICENSE
-* Maintainers - Tom Greenfield
-*/
+define([ "coreJS/adapt" ], function(Adapt) {
 
-define(function(require) {
-
-	var Adapt = require("coreJS/adapt");
-
-	function addScript() {
+	function setUpMathJax() {
 		var config = Adapt.config.get("_mathJax");
-		var script = "<script type='text/x-mathjax-config'>";
-		var hideLoadingDiv = "MathJax.Hub.Queue(function() {\n" +
-			"	$('.loading').hide();\n" +
-			"});\n";
-		var hideLoadingMessages = "MathJax.Message.File = function(file) {\n" +
-			"	var root = MathJax.Ajax.config.root;\n" +
-			"	var rootLength = root.length;\n" +
-			"	if (file.substr(0, rootLength) === root) {\n" +
-			"		file = '[MathJax]' + file.substr(rootLength)\n" +
-			"	}\n" +
-			"	return this.Set('Loading ' + file, null, 0);\n" +
-			"},\n";
-		var inlineConfig = config && config._inlineConfig ? config._inlineConfig :
-			{ "extensions": ["tex2jax.js"], "jax": ["input/TeX", "output/HTML-CSS"] };
-		var src = config && config._src ? config._src :
-			"//cdn.mathjax.org/mathjax/latest/MathJax.js";
+		var inlineConfig = config ? config._inlineConfig : {
+				"extensions": [ "tex2jax.js" ],
+				"jax": [ "input/TeX", "output/HTML-CSS" ]
+		};
+		var src = config ? config._src : "//cdn.mathjax.org/mathjax/latest/MathJax.js";
+		var $init = $("<script/>").attr("src", "assets/mathJaxInit.js");
+		var $config = $("<script/>").attr("type", "text/x-mathjax-config");
+		var $src = $("<script/>").attr("src", src);
 
-		script += hideLoadingDiv + hideLoadingMessages + "MathJax.Hub.Config(" +
-			JSON.stringify(inlineConfig, null, "\t") + ");</script>" +
-			"<script type='text/javascript' src='" + src + "'></script>";
-
-		$("head").append(script);
+		$config[0].text = "MathJax.Hub.Config(" + JSON.stringify(inlineConfig) + ");";
+		$("head").append($init, $config, $src);
 	}
 
-	Adapt.on("app:dataReady", function() { addScript(); })
-		.on("menuView:ready pageView:ready", function(view) {
-			$(".loading").show();
+	function onProcessMath() {
+		$(".loading").show();
+	}
 
-			if (window.MathJax) {
-				MathJax.Hub.Queue(["Typeset", MathJax.Hub, view.el], function() {
-					$(".loading").hide();
-				});
-			}
-		})
-		.on("popup:opened", function($el) {
-			var $el = $el ? $el[0] : undefined;
+	function onEndProcess() {
+		Adapt.trigger("device:resize");
+		$(".loading").hide();
+	}
 
-			_.defer(function() {
-				MathJax.Hub.Queue(["Typeset", MathJax.Hub, $el], function() {
-					Adapt.trigger("device:resize");
-				});
-			});
-		});
+	function onViewReady(view) {
+		var Hub = window.MathJax.Hub;
+
+		$(".loading").show();
+
+		if (Hub) Hub.Queue([ "Typeset", Hub, view.el ]);
+	}
+
+	function onPopupOpened($element) {
+		if ($element) $element = $element[0];
+
+		MathJax.Hub.Queue([ "Typeset", MathJax.Hub, $element ]);
+	}
+
+	Adapt.once("app:dataReady", setUpMathJax).on({
+		"mathJax:processMath": onProcessMath,
+		"mathJax:endProcess": onEndProcess,
+		"menuView:ready": onViewReady,
+		"pageView:ready": onViewReady,
+		"popup:opened": onPopupOpened
+	});
 
 });

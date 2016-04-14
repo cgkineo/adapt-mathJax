@@ -20,7 +20,8 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 }
 ```
 * If this needs to be overridden, add the above to `config.json` and modify where required.
-* Copy the extension folder into the src > extensions directory and run an appropriate Grunt task.
+* With [Adapt CLI](https://github.com/adaptlearning/adapt-cli) installed, run `adapt install mathJax`. Alternatively, download the ZIP and extract into the src > extensions directory.
+* Run an appropriate Grunt task.
 
 ### Usage
 
@@ -34,7 +35,14 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 ```
 \\[f(x) = \\frac{1}{1+x}\\]
 ```
-* Remember to escape any backslashes with an additional backslash `\`.
-* On menu/page load, the Adapt loading screen is shown until MathJax has finished processing.
-* MathJax processing messages are styled to mimic the Adapt loading screen.
-* MathJax file loading messages are hidden.
+* When directly editing JSON, remember that backslashes are escaped with an additional backslash `\`.
+* The Adapt loading screen is shown while MathJax is processing.
+
+### Attributes
+
+Attribute | Type | Description | Default
+--------- | ---- | ----------- | -------
+`_inlineConfig` | Object | In-line [configuration](http://docs.mathjax.org/en/latest/options/index.html#configuration) for MathJax | `{ "extensions": [ "tex2jax.js" ], "jax": [ "input/TeX", "output/HTML-CSS" ] }`
+`_src` | String | The URL to the copy of MathJax which should be loaded | `"//cdn.mathjax.org/mathjax/latest/MathJax.js"`
+
+* Note: these attributes are not exposed in the authoring tool.
