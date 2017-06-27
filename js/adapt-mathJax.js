@@ -1,4 +1,4 @@
-define([ "coreJS/adapt" ], function(Adapt) {
+define([ "core/js/adapt" ], function(Adapt) {
 
 	function setUpMathJax() {
 		var config = Adapt.config.get("_mathJax");
