@@ -1,9 +1,10 @@
 {
 	"name": "adapt-mathJax",
-	"version": "0.1.2",
+	"version": "0.2.0",
 	"framework": ">=1.1.2",
 	"displayName": "MathJax",
-	"extension": "mathjax",
+	"extension": "mathJax",
+	"targetAttribute": "_mathJax",
 	"description": "An extension to load MathJax into Adapt",
 	"main": "/js/adapt-mathJax.js",
 	"keywords": [

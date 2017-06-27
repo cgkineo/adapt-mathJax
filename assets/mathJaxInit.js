@@ -1,6 +1,6 @@
 window.MathJax = {
 	AuthorInit: function() {
-		var Adapt = require("coreJS/adapt");
+		var Adapt = require("core/js/adapt");
 		var messageSet = MathJax.Message.Set;
 
 		MathJax.Message.Set = function(text, n, clearDelay) {

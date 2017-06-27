@@ -6,7 +6,9 @@ define([ "coreJS/adapt" ], function(Adapt) {
 				"extensions": [ "tex2jax.js" ],
 				"jax": [ "input/TeX", "output/HTML-CSS" ]
 		};
-		var src = config ? config._src : "//cdn.mathjax.org/mathjax/latest/MathJax.js";
+		var src = config ?
+			config._src :
+			"//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js";
 		var $init = $("<script/>").attr("src", "assets/mathJaxInit.js");
 		var $config = $("<script/>").attr("type", "text/x-mathjax-config");
 		var $src = $("<script/>").attr("src", src);
@@ -33,9 +35,11 @@ define([ "coreJS/adapt" ], function(Adapt) {
 	}
 
 	function onPopupOpened($element) {
+		var Hub = window.MathJax.Hub;
+
 		if ($element) $element = $element[0];
 
-		MathJax.Hub.Queue([ "Typeset", MathJax.Hub, $element ]);
+		Hub.Queue([ "Typeset", Hub, $element ]);
 	}
 
 	Adapt.once("app:dataReady", setUpMathJax).on({

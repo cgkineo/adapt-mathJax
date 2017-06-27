@@ -16,7 +16,7 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 			"output/HTML-CSS"
 		]
 	},
-	"_src": "//cdn.mathjax.org/mathjax/latest/MathJax.js"
+	"_src": "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js"
 }
 ```
 * If this needs to be overridden, add the above to `config.json` and modify where required.
@@ -35,7 +35,7 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 ```
 \\[f(x) = \\frac{1}{1+x}\\]
 ```
-* When directly editing JSON, remember that backslashes are escaped with an additional backslash `\`.
+* When directly editing in the authoring tool, backslashes do *not* have to escaped with an additional backslash `\`.
 * The Adapt loading screen is shown while MathJax is processing.
 
 ### Attributes
@@ -43,6 +43,4 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 Attribute | Type | Description | Default
 --------- | ---- | ----------- | -------
 `_inlineConfig` | Object | In-line [configuration](http://docs.mathjax.org/en/latest/options/index.html#configuration) for MathJax | `{ "extensions": [ "tex2jax.js" ], "jax": [ "input/TeX", "output/HTML-CSS" ] }`
-`_src` | String | The URL to the copy of MathJax which should be loaded | `"//cdn.mathjax.org/mathjax/latest/MathJax.js"`
-
-* Note: these attributes are not exposed in the authoring tool.
+`_src` | String | The URL to the copy of MathJax which should be loaded | `"//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js"`
