@@ -9,9 +9,9 @@ define([ "core/js/adapt" ], function(Adapt) {
 		var src = config ?
 			config._src :
 			"//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js";
-		var $init = $("<script/>").attr("src", "assets/mathJaxInit.js");
-		var $config = $("<script/>").attr("type", "text/x-mathjax-config");
-		var $src = $("<script/>").attr("src", src);
+		var $init = $("<script/>", { src: "assets/mathJaxInit.js" });
+		var $config = $("<script/>", { type: "text/x-mathjax-config" });
+		var $src = $("<script/>", { src: src });
 
 		$config[0].text = "MathJax.Hub.Config(" + JSON.stringify(inlineConfig) + ");";
 		$("head").append($init, $config, $src);
