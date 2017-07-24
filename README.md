@@ -35,7 +35,7 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 ```
 \\[f(x) = \\frac{1}{1+x}\\]
 ```
-* When directly editing in the authoring tool, backslashes do *not* have to escaped with an additional backslash `\`.
+* When directly editing in the authoring tool, backslashes do *not* have to be escaped with an additional backslash `\`.
 * The Adapt loading screen is shown while MathJax is processing.
 
 ### Attributes
