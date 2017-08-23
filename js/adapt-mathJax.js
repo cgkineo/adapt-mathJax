@@ -21,8 +21,8 @@ define([ "core/js/adapt" ], function(Adapt) {
 			script.onload = callback;
 		}
     
-    // Append the <script> tag.
-    head.appendChild(script);
+        // Append the <script> tag.
+        head.appendChild(script);
 	}
 
 	function setUpMathJax() {
