@@ -63,7 +63,7 @@ define([ "core/js/adapt" ], function(Adapt) {
 
 		function checkForMathJax() {
 			if (!window.MathJax || !window.MathJax.Hub) {
-				window.setTimeout(checkForLibrary, 200);
+				window.setTimeout(checkForMathJax, 200);
 			} else {
 				var Hub = window.MathJax.Hub;
 				Hub.Queue([ "Typeset", Hub, view.el ]);
