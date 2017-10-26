@@ -27,7 +27,7 @@ define([ "core/js/adapt" ], function(Adapt) {
 	}
 
 	function onViewReady(view) {
-		var Hub = window.MathJax.Hub;
+		var Hub = window.MathJax && window.MathJax.Hub;
 
 		$(".loading").show();
 
