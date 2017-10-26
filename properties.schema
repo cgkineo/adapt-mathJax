@@ -33,7 +33,7 @@
                 },
                 "_src": {
                   "type": "string",
-                  "default": "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js",
+                  "default": "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js",
                   "title": "Source",
                   "inputType": "Text",
                   "help": "Enter the URL to the copy of MathJax which should be loaded"
