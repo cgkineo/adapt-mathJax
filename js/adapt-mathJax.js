@@ -33,9 +33,7 @@ define([ "core/js/adapt" ], function(Adapt) {
 				"extensions": [ "tex2jax.js" ],
 				"jax": [ "input/TeX", "output/HTML-CSS" ]
 		};
-		var src = config ?
-			config._src :
-			"//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js";
+		var src = config ? config._src : "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js";
 
 		loadScript({ 
 			type: "text/x-mathjax-config",
@@ -84,8 +82,7 @@ define([ "core/js/adapt" ], function(Adapt) {
 	Adapt.once("app:dataReady", setUpMathJax).on({
 		"mathJax:processMath": onProcessMath,
 		"mathJax:endProcess": onEndProcess,
-		"menuView:ready": onViewReady,
-		"pageView:ready": onViewReady,
+		"menuView:ready pageView:ready": onViewReady,
 		"popup:opened": onPopupOpened
 	});
 
