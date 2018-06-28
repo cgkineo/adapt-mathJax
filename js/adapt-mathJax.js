@@ -5,7 +5,7 @@ define([ "core/js/adapt" ], function(Adapt) {
 		var script = document.createElement('script');
 
 		script.type = scriptObject.type || 'text/javascript';
-    
+
 		if (scriptObject.src) {
 			script.src = scriptObject.src;
 		}
@@ -13,20 +13,20 @@ define([ "core/js/adapt" ], function(Adapt) {
 		if (scriptObject.text) {
 			script.text = scriptObject.text;
 		}
-    
+
 		if (callback) {
 			// Then bind the event to the callback function.
 			// There are several events for cross browser compatibility.
 			script.onreadystatechange = callback;
 			script.onload = callback;
 		}
-    
-        // Append the <script> tag.
-        head.appendChild(script);
+
+		// Append the <script> tag.
+		head.appendChild(script);
 	}
 
 	function setUpMathJax() {
-		Adapt.trigger('plugin:beginWait');
+		Adapt.wait ? Adapt.wait.begin() : Adapt.trigger("plugin:beginWait");
 
 		var config = Adapt.config.get("_mathJax");
 		var inlineConfig = config ? config._inlineConfig : {
@@ -42,7 +42,7 @@ define([ "core/js/adapt" ], function(Adapt) {
 
 		loadScript({ src: 'assets/mathJaxInit.js' }, function() {
 			loadScript({ src: src }, function() {
-				Adapt.trigger('plugin:endWait');
+				Adapt.wait ? Adapt.wait.end() : Adapt.trigger("plugin:endWait");
 			});
 		});
 	}
