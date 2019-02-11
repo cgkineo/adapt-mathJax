@@ -26,7 +26,7 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 ### Usage
 
 * With the default configuation, equations are processed in LaTeX format.
-* In JSON, surround LaTeX equations with `\\(``\\)` for inline mode or `\\[``\\]` for display mode.
+* In JSON, surround LaTeX equations with `\\(` and `\\)` for inline mode or `\\[` and `\\]` for display mode.
 * Example of inline mode:
 ```
 \\(x^n + y^n = z^n\\)
@@ -35,7 +35,10 @@ An extension to load [MathJax](https://www.mathjax.org) into Adapt.
 ```
 \\[f(x) = \\frac{1}{1+x}\\]
 ```
-* When directly editing in the authoring tool, backslashes do *not* have to be escaped with an additional backslash `\`.
+* When directly editing in the authoring tool, backslashes do *not* have to be escaped with an additional backslash (`\`). The above 'inline mode' example would therefore be entered as:
+```
+\(x^n + y^n = z^n\)
+```
 * The Adapt loading screen is shown while MathJax is processing.
 
 ### Attributes
