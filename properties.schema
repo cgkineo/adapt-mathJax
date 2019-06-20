@@ -33,6 +33,7 @@
                         [ "\\\\[", "\\\\]" ]
                       ],
                       "processEscapes": true
+                    }
                   },
                   "title": "In-line config",
                   "inputType": {
