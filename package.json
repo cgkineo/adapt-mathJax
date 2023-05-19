@@ -1,0 +1,35 @@
+{
+  "name": "adapt-mathJax",
+  "version": "0.2.3",
+  "framework": ">=1.1.2",
+  "displayName": "MathJax",
+  "extension": "mathJax",
+  "targetAttribute": "_mathJax",
+  "description": "An extension to load MathJax into Adapt",
+  "main": "/js/adapt-mathJax.js",
+  "keywords": [
+    "adapt-plugin",
+    "adapt-extension"
+  ],
+  "authors": [
+    "Tom Greenfield"
+  ],
+  "license": "GPL-3.0",
+  "homepage": "https://github.com/HT2-Labs/adapt-contrib-mathJax",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HT2-Labs/adapt-builder.git"
+  },
+  "private": "true",
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "^9.0.2",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^8.0.7",
+    "@semantic-release/release-notes-generator": "^10.0.3",
+    "conventional-changelog-eslint": "^3.0.9",
+    "semantic-release": "19.0.3"
+  },
+  "scripts": {
+    "postversion": "cp package.json bower.json"
+  }
+}
