@@ -48,14 +48,14 @@ export const DEFAULT_SRC = `${LIBRARY_PATH}/tex-mml-chtml.js`;
  * `noerrors` degrades a failed expression to its original TeX; `noundefined`
  * renders an unknown macro as its own name. Both are softeners rather than
  * guarantees — structural errors (an unclosed brace, a missing argument) still
- * reach the page as a message. See `.bench/FINDINGS.md`.
+ * reach the page as a message. See `docs/FINDINGS.md`.
  *
  * `loader.paths` and `chtml.fontURL` are what make the vendored copy work
  * offline, and both are mandatory rather than tidiness. MathJax resolves lazy
  * `loader.load` requests and its webfonts relative to the *bundle's own* URL,
  * which does not match the collated layout above — left unset, the extensions
  * and fonts 404 and the failure is **silent**: equations still typeset, in a
- * fallback font, with no console error. See Phase 6 in `.bench/PLAN.md`.
+ * fallback font, with no console error. See Phase 6 in `docs/FINDINGS.md`.
  *
  * `fontURL` alone is not enough, and getting this wrong is the trap. The stock
  * `tex-mml-chtml.js` bundle defaults to MathJax 4's **newcm** font and asks for
@@ -141,7 +141,7 @@ function loadScript(src) {
  * `typesetPromise` until `startup.promise` has resolved, so at this point the
  * object holds only `{_, config, loader, options, startup, version}`. Testing
  * for the typeset call here would miss v4 entirely and throw. Verified against
- * the real 4.1.3 bundle — see `.bench/adapter-real-check.mjs`.
+ * the real 4.1.3 bundle, the one vendored here — see `tools/adapter-real-check.mjs`.
  *
  * @returns {MathJax2Adapter|MathJax3Adapter}
  */

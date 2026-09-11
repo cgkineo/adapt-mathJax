@@ -62,7 +62,7 @@ A course that names its own `_src` is responsible for making that URL resolve of
 
 Most courses need no action — installs from `1.0.0` onward migrate automatically wherever the stored `_src` and `_inlineConfig` are both the plugin's own `0.2.2`-era stock defaults (see [Migration](#migration) below). This section is for a course that stores a **customised** config and wants to move to v4 deliberately.
 
-1. **Run the content-compatibility harness** (`.bench/harness/harness.mjs` in this repo) against the course's `components.json` files. It renders every `\(…\)`/`\[…\]` expression through both the old and new library headlessly and flags anything that changes or errors.
+1. **Run the content-compatibility harness** (`tools/harness.mjs` in this repo) against the course's `components.json` files. It renders every `\(…\)`/`\[…\]` expression through both the old and new library headlessly and flags anything that changes or errors. It needs `mathjax-full@3.2.2` and `@mathjax/src@4`, which are deliberately not dependencies of this plugin: install them in a scratch directory and run it from there.
 2. **Fix any flagged expressions** at source. The plugin does not rewrite content, so a malformed expression that rendered under the old config must be corrected in the JSON.
 3. **Clear `_src` and `_inlineConfig` together.** Emptying both is the recommended route: the course then follows the plugin's bundled v4 pair and stops pinning a library version. To move to a v4 build of your own instead, set `_src` to it and translate `_inlineConfig` using the table below — and note that the bundled configuration's non-delimiter settings are specific to *this* plugin's `libraries/` folder and should not be copied into a config pointing somewhere else.
 
@@ -93,4 +93,4 @@ Most courses need no action — installs from `1.0.0` onward migrate automatical
 **Author / maintainer:** Kineo, originally by Tom Greenfield, with [contributors](https://github.com/cgkineo/adapt-mathJax/graphs/contributors)<br>
 **Accessibility support:** none — see [Limitations](#limitations) and [#5](https://github.com/cgkineo/adapt-mathJax/issues/5)<br>
 **RTL support:** Untested<br>
-**Cross-platform coverage:** Chrome, Firefox; Safari verification outstanding — see `.bench/SAFARI-TEST-REQUEST.md`<br>
+**Cross-platform coverage:** Chrome, Firefox; Safari verification outstanding<br>

@@ -1,20 +1,40 @@
 /*
- * Phase 2 Done-when: "both adapters are selected correctly against real v2 and
- * v4 URLs."
+ * Checks that the adapter layer selects and drives the REAL MathJax libraries,
+ * with nothing about MathJax mocked. jsdom executes the actual bundles.
  *
- * Loads the ACTUAL libraries from cdnjs into jsdom (already a framework
- * devDependency), then runs the real selectAdapter logic and the real adapter
- * ready/typeset calls against them. No mocked MathJax anywhere.
+ * Run from the framework root, where jsdom is already a devDependency:
+ *
+ *   node src/extensions/adapt-mathJax/tools/adapter-real-check.mjs
+ *
+ * The v4 leg loads the bundle this plugin ships, from disk, so it verifies the
+ * artifact that actually reaches a course and needs no network. The v2 leg
+ * still loads from cdnjs, because the plugin vendors no v2 copy: v2 support
+ * exists only for a course that names its own `_src`, so testing it means
+ * fetching what such a course would fetch. That leg needs a connection and is
+ * skipped without one.
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { JSDOM, ResourceLoader } from 'jsdom';
 
-const V4 = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-mml-chtml.js';
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const V4 = path.join(HERE, '..', 'libraries', 'mathjax', '4', 'tex-mml-chtml.js');
 const V2 = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js';
 
 // NPL's exact stored config, byte-identical to the 0.2.2 stock default.
 const V2_CONFIG = { extensions: ['tex2jax.js'], jax: ['input/TeX', 'output/HTML-CSS'] };
 
-// The plugin's DEFAULT_CONFIG, copied from MathJaxLoader.js.
+// A reduced DEFAULT_CONFIG, not a copy of it. This file answers one question:
+// does `selectAdapter` pick the right adapter and does `ready` settle against
+// the real bundle. `chtml.fontURL` is omitted because jsdom loads no webfonts,
+// and `test/e2e/offline.cy.js` is what verifies that in a real browser.
+//
+// `loader.paths` is NOT optional here. The two TeX extensions below are lazy
+// loads, and `startup.promise` does not settle until they arrive, so pointing
+// this at the vendored directory is what makes `ready` resolve. It also means a
+// pass proves those two files are present and loadable, which is the failure
+// this check is most useful for.
 const V4_CONFIG = {
   loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
   tex: {
@@ -66,6 +86,9 @@ const PAGE_HTML = `
   <div id="popup"><p>Later: ${BS}(${BS}beta^-${BS})</p></div>
 `;
 
+/** @param {string} p @returns {string} An absolute file: URL for a local path. */
+const fileUrl = p => `file://${p.split(path.sep).join('/')}`;
+
 async function loadReal (label, src, config) {
   console.log(`\n=== ${label} ===`);
   console.log(`  ${src}`);
@@ -102,10 +125,10 @@ async function check (label, src, config, expectedAdapter, expectedVersion) {
   try {
     ({ window } = await loadReal(label, src, config));
   } catch (e) {
-    ok(`${label}: library loads from cdnjs`, false, e.message);
+    ok(`${label}: library loads`, false, e.message);
     return;
   }
-  ok(`${label}: library loads from cdnjs`, true);
+  ok(`${label}: library loads`, true);
 
   const MJ = window.MathJax;
   console.log('  MathJax.version               :', MJ?.version ?? '(none)');
@@ -141,13 +164,12 @@ async function check (label, src, config, expectedAdapter, expectedVersion) {
   // The adapter's `typeset` call, against the real library and real elements.
   //
   // MathJax 4 starts a Web Worker for its speech layer on first typeset, and
-  // jsdom implements neither Worker nor URL.createObjectURL. Rendering on the
-  // v4 path is covered by the real browser bench (.bench/bench-v4.html, run in
-  // Firefox and Chrome during Phase 0) rather than here. What this file proves
-  // for v4 is adapter selection and readiness — the two things Phase 0 could
-  // not cover, because they are plugin logic rather than library behaviour.
+  // jsdom implements neither Worker nor URL.createObjectURL. v4 rendering is
+  // covered by `test/e2e/offline.cy.js` in a real browser instead. What this
+  // file proves for v4 is adapter selection and readiness, which are plugin
+  // logic rather than library behaviour.
   if (picked === 'MathJax3Adapter') {
-    console.log('  (typeset not exercised: jsdom has no Worker — see .bench/bench-v4.html)');
+    console.log('  (typeset not exercised: jsdom implements neither Worker nor URL.createObjectURL)');
     window.close();
     return;
   }
@@ -169,7 +191,7 @@ async function check (label, src, config, expectedAdapter, expectedVersion) {
   const isV2 = picked === 'MathJax2Adapter';
   // MathJax 2 auto-typesets the whole document during startup, so by the time
   // the adapter runs the DOM is already rewritten. v4 is held back by
-  //  in the plugin default config, so there the
+  // `startup: { typeset: false }` in the plugin default config, so there the
   // adapter call is what does the work.
   if (isV2) {
     ok(`${label}: DOM already typeset by v2 startup (auto-typeset)`, /class="MathJax/.test(before), 'not auto-typeset');
@@ -200,11 +222,21 @@ async function check (label, src, config, expectedAdapter, expectedVersion) {
   window.close();
 }
 
-console.log('Selecting adapters against the real MathJax libraries on cdnjs.');
+console.log('Selecting adapters against the real MathJax libraries.');
 console.log('jsdom executes the actual bundles; nothing about MathJax is mocked.');
 
-await check('MathJax 4.1.3', V4, V4_CONFIG, 'MathJax3Adapter', 4);
-await check('MathJax 2.7.2', V2, V2_CONFIG, 'MathJax2Adapter', 2);
+V4_CONFIG.loader.paths = { mathjax: fileUrl(path.join(HERE, '..', 'libraries', 'mathjax', '4')) };
+
+if (!fs.existsSync(V4)) {
+  console.error(`Vendored bundle missing at ${V4}`);
+  process.exit(1);
+}
+
+await check('MathJax 4.1.3 (vendored)', fileUrl(V4), V4_CONFIG, 'MathJax3Adapter', 4);
+// `--vendored-only` skips the one leg that needs a connection.
+if (!process.argv.includes('--vendored-only')) {
+  await check('MathJax 2.7.2 (cdnjs)', V2, V2_CONFIG, 'MathJax2Adapter', 2);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

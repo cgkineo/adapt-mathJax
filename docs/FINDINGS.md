@@ -4,9 +4,10 @@
 (`src/course/`), the only real NPL content available locally. **Phase 6 verification added
 2026-09-11** — see [Phase 6 — vendoring verified](#phase-6--vendoring-verified-2026-09-11).
 
-**The plan this belongs to is [`PLAN.md`](PLAN.md)** in this directory. Several of its
-decisions were superseded by the findings below — it is marked up accordingly, but **this
-file is authoritative where the two differ.**
+**This file is the record.** It was written alongside a phase plan (`PLAN.md`) whose
+decisions it superseded in several places. That plan was removed when the plugin was packaged
+for release, along with the Phase 0 browser benches, since both described questions these
+findings close. Nothing below depends on either.
 
 Phase 0 of the modernisation plan. Its purpose is to answer two questions before any
 code is written:
@@ -82,7 +83,7 @@ Including all four suspect cases:
 2. **The package set is modest and matched across both** — `base`, `ams`, `newcommand`,
    `configmacros`, *not* `AllPackages`. NPL loads only `input/TeX` with no extensions; a
    maximal package set would be a more forgiving parser than they actually run.
-3. **Detection is proven, not assumed.** `harness/selftest.mjs` plants six errors — undefined
+3. **Detection is proven, not assumed.** `tools/harness-selftest.mjs` plants six errors — undefined
    control sequence, unbalanced brace, missing argument, unloaded `mhchem`, unloaded
    `physics`, unclosed group. **All six are caught.** A harness reporting "all clean" is
    worthless without this control.
@@ -179,10 +180,11 @@ share a rendering engine with either browser tested. Its risk is low but not zer
 historically differed on web-font loading and on MathML, which is v3/v4's output path.
 
 **No Mac is available on this side, so it will be delegated to a reviewer on the Phase 1 PR.**
-Self-contained instructions are in [`SAFARI-TEST-REQUEST.md`](SAFARI-TEST-REQUEST.md) —
-roughly ten minutes, no build or install, and written to be followed by someone who has not
-read this plan. **Do not close Phase 0 until that result is in**, and record it in the browser
-matrix above when it arrives.
+It needs roughly ten minutes and no build or install: open a page holding both an inline and
+a display equation in Safari, then confirm the maths renders, the glyphs match the surrounding
+body text in size and baseline, and the console stays clean. **Do not close Phase 0 until that
+result is in**, and record it in the browser matrix above when it arrives. The outstanding gap
+is stated in the README's cross-platform line.
 
 **The v3 `×` spacing difference reproduces in both engines** (`4.5×10⁹` in v3 against
 `4.5 × 10⁹` in v2 and v4), confirming it is a MathJax 3 typesetting choice rather than a
@@ -196,8 +198,8 @@ strengthens the case for vendoring rather than CDN-loading it.
 
 **Note on the three-pane view.** One capture showed raw `\\(A\\)` in the iframe panes while
 the standalone files rendered correctly. That was **browser-cached copies of the pre-fix
-files**, verified against disk — not a defect. Hard-reload (Ctrl+Shift+R) `bench.html` after
-any rebuild; the iframes cache independently of the parent.
+files**, verified against disk — not a defect. The iframes cached independently of the
+parent and needed a hard reload after each rebuild.
 
 ---
 
@@ -209,11 +211,12 @@ anywhere, v4 becomes forced and content work returns to the critical path.
 
 ### Running it
 
-Open `.bench/bench.html` for all three side by side, or each file standalone.
-**Standalone in each of the four browsers is the part that matters** — the iframe parent is
-for comparing versions, not for the browser sweep.
+> **The bench pages were removed after Phase 0.** They loaded each library from cdnjs, so they
+> compared CDN builds rather than the copy this plugin now vendors, and the question they
+> existed to answer is closed. `test/e2e/offline.cy.js` replaced them and checks the shipped
+> bundle in a real browser. This section records how the sweep was run.
 
-Each page auto-reports in its status bar: time to first typeset, `<merror>` count, window
+Each page auto-reported in its status bar: time to first typeset, `<merror>` count, window
 errors, and (v2 only) whether `#MathJax_Message` appears. Every expression is rendered
 **twice** — alone, and inside its real sentence — because inline baseline and size matching
 against body text is what an author notices and cannot be judged from an isolated equation.
@@ -259,8 +262,8 @@ escaping can be lost in transit. A first attempt used a single `92`, which compi
 the test caught it before it shipped.
 
 **Verification now checks the emitted file, not the generator source.** Both bugs lived in
-the gap between what the generator meant and what it wrote. `verify-emitted.js` extracts
-the guard verbatim from `bench-v4.html`, compiles it, and asserts it stays silent after a
+the gap between what the generator meant and what it wrote. `verify-emitted.js` extracted
+the guard verbatim from the emitted v4 bench page, compiled it, and asserts it stays silent after a
 simulated successful typeset (0 of 44) and fires when nothing typesets (44 of 44).
 
 ### Verified before you start
@@ -299,15 +302,21 @@ it is the most visible symptom, so it is worth confirming before Phase 2 fixes i
 
 ## Files
 
+What survived Phase 0 and still ships:
+
 | Path | What |
 | :--- | :--- |
-| `bench.html` | Three-pane parent |
-| `bench-v2/3/4.html` | Standalone benches — use these for the browser sweep |
-| `harness/harness.mjs` | Content-compatibility harness. `node harness.mjs <course-dir> …` |
-| `harness/selftest.mjs` | Negative control proving detection fires |
+| `tools/harness.mjs` | Content-compatibility harness. `node tools/harness.mjs <course-dir> …` |
+| `tools/harness-selftest.mjs` | Negative control proving detection fires |
+| `tools/adapter-real-check.mjs` | Adapter selection and readiness against the vendored bundle |
 
-The harness needs `mathjax-full@3.2.2` and `@mathjax/src@4`. Both were installed **in a
-scratch directory, not in the plugin or the framework** — no project dependency was added.
+The harness needs `mathjax-full@3.2.2` and `@mathjax/src@4`, neither of which is a dependency
+of this plugin or the framework. Install them in a scratch directory and run the harness from
+there. Keeping them out of _package.json_ is deliberate: `@mathjax/src` alone unpacks to about
+34MB, and the harness runs once per custom-config course rather than on every install.
+
+The three-pane bench parent and the standalone v2/v3/v4 pages were removed at packaging.
+`tools/adapter-real-check.mjs` needs only jsdom, which the framework already has.
 
 Scaling to the estate is the plan's item 2 proper: point `harness.mjs` at the migration set's
 course roots. It already accepts multiple roots and dedupes across them.
@@ -392,8 +401,9 @@ direction — **one lever that would actually be pulled beats granular levers th
 Prompted by [mathjax/MathJax#2832](https://github.com/mathjax/MathJax/issues/2832), where
 MathJax's lead maintainer recommends both extensions to degrade broken TeX to readable text.
 **That answer is v2-specific** (`noErrors.js`/`noUndefined.js`, issue labelled `v2`); v4 uses
-`[tex]/noerrors` and `[tex]/noundefined`. Both confirmed present in v4 and tested directly —
-`harness/noerrors-test.mjs`.
+`[tex]/noerrors` and `[tex]/noundefined`. Both confirmed present in v4 and tested
+directly, running the same broken inputs with and without the two packages. The table below is
+that result. The script was removed at packaging, the question being settled.
 
 **Verdict: load both. They are a clear improvement at no cost — but they are a softener, not
 a guarantee, and must not be described as "errors are handled."**
@@ -430,7 +440,7 @@ usually shows the source.
 
 **Required before the estate rollout:**
 
-1. **The Safari result** — [`SAFARI-TEST-REQUEST.md`](SAFARI-TEST-REQUEST.md). **Outstanding.**
+1. **The Safari result.** **Outstanding.** The browser sweep above says what to check.
 2. ~~**Vendoring proven to work.**~~ ✅ **Done 2026-09-11.** It was exactly as fiddly as
    predicted: two separate silent failures, neither logging anything. See
    [Phase 6](#phase-6--vendoring-verified-2026-09-11). Guarded by `test/e2e/offline.cy.js`.
@@ -453,7 +463,7 @@ Three things make this an acceptable trade rather than a gamble:
 - **Rollback is one constant and one deploy.** If something systemic surfaces, recovery is
   minutes and needs no per-course work.
 
-**If access to more NPL courses ever becomes available, run `harness/harness.mjs` before the
+**If access to more NPL courses ever becomes available, run `tools/harness.mjs` before the
 estate rollout.** It takes multiple course roots and runs in minutes.
 
 ---
@@ -602,4 +612,4 @@ library decision.
 | **Phase 2** | Plugin owns default `_src`/`_inlineConfig` as constants — this is the rollback lever. Load `[tex]/noerrors` + `[tex]/noundefined`. |
 | **Phase 4** | Rewritten migration rule; **escalate to Opus 5**. |
 | **Before rollout** | Safari result; vendoring proven offline; one pilot course in production. |
-| **If ever possible** | Run `harness/harness.mjs` across more NPL courses. |
+| **If ever possible** | Run `tools/harness.mjs` across more NPL courses. |
