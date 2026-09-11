@@ -1,7 +1,8 @@
-# Phase 0 findings — `adapt-mathJax` three-version verification
+# Findings — `adapt-mathJax` modernisation
 
-**Run 2026-09-10.** Against the NPL export `lesson-2-the-fundamentals-of-reactivity`
-(`src/course/`), which is the only real NPL content available locally.
+**Phase 0 run 2026-09-10**, against the NPL export `lesson-2-the-fundamentals-of-reactivity`
+(`src/course/`), the only real NPL content available locally. **Phase 6 verification added
+2026-09-11** — see [Phase 6 — vendoring verified](#phase-6--vendoring-verified-2026-09-11).
 
 **The plan this belongs to is [`PLAN.md`](PLAN.md)** in this directory. Several of its
 decisions were superseded by the findings below — it is marked up accordingly, but **this
@@ -32,7 +33,7 @@ code is written:
 | :--- | :--- |
 | 1. Three-version bench | **Done.** v2 renders correctly in Firefox and Chrome; all four suspect cases pass in all three versions. Edge skipped (Chromium); Safari untested. |
 | 2. Content-compatibility harness | **Done, and run.** Detection proven by negative control. |
-| 3. Confirm stuck-overlay bug with a build | **Not done** — needs `grunt`, which requires explicit authorization. |
+| 3. Confirm stuck-overlay bug with a build | **Still not done for 0.2.2** — that would need a build of the *old* plugin, which was never run. Phase 6 did build the rewritten plugin and found a **different, new** stuck-overlay cause (the speech hang), which is fixed and regression-tested. The 2019 defect remains inferred from code; the mechanism it depends on (`wait` never released) is now demonstrated to produce exactly the predicted symptom. See [Phase 6](#phase-6--vendoring-verified-2026-09-11). |
 | 4. Correct the site records | **Done.** |
 
 ---
@@ -429,10 +430,12 @@ usually shows the source.
 
 **Required before the estate rollout:**
 
-1. **The Safari result** — [`SAFARI-TEST-REQUEST.md`](SAFARI-TEST-REQUEST.md). Outstanding.
-2. **Vendoring proven to work.** Per the plan, offline lazy-load resolution fails **silently**
-   if the directory structure or `fontURL` is wrong. The genuinely fiddly part.
-3. **A pilot course in production before the rest follow.**
+1. **The Safari result** — [`SAFARI-TEST-REQUEST.md`](SAFARI-TEST-REQUEST.md). **Outstanding.**
+2. ~~**Vendoring proven to work.**~~ ✅ **Done 2026-09-11.** It was exactly as fiddly as
+   predicted: two separate silent failures, neither logging anything. See
+   [Phase 6](#phase-6--vendoring-verified-2026-09-11). Guarded by `test/e2e/offline.cy.js`.
+3. **A pilot course in production before the rest follow.** **Outstanding** — the local test
+   course is not a substitute for a real instance.
 
 ### The accepted risk, stated plainly
 
@@ -484,6 +487,99 @@ condition is now met by construction — plan for Opus 5 on Phase 4.**
 
 **Step 2 is absorbed.** Vendoring, `fontURL` resolution against Grunt's collated layout, and
 the config translation all move into the main body of work rather than a later opt-in phase.
+
+---
+
+## Phase 6 — vendoring verified (2026-09-11)
+
+**MathJax 4.1.3 and the TeX font are vendored to `libraries/mathjax/4/` — 1.3MB, 26 files —
+and verified rendering offline in headless Chrome against a real `grunt build`.**
+
+| Check | Result |
+| :--- | :--- |
+| Equations typeset | 21 containers, **0 `<merror>`** |
+| Loading screen | Releases correctly — `_waitCount` returns to 0 |
+| Fonts | 22 `@font-face` rules, **all** resolving to the vendored path; 0 newcm |
+| External requests | **Zero.** No `cdnjs` reference remains in the built bundle |
+| Navigation | Fresh load, away, back, and a second round-trip — **all pass** |
+
+**Vendoring MathJax 4 is practical in a way MathJax 2 never was.** The plan's "62MB / 3,147
+files" figure was a v2 problem; v4's runtime subset is three orders of magnitude smaller in
+file count. The `libraries/mathjax/4/` subfolder is mandatory — `grunt/config/copy.js`
+collates every plugin's `libraries/**` into one flat `build/libraries/`, keeping only the path
+after the `libraries/` segment.
+
+### Two silent failures, both found only by running a build
+
+**Neither produced a console error.** This is the strongest argument for keeping
+`test/e2e/offline.cy.js` in CI: a green build and a clean console prove nothing here.
+
+**1. Wrong font family.** The stock `tex-mml-chtml.js` defaults to v4's **newcm** font and
+requests `mjx-ncm-*.woff2`; the vendored font package ships `mjx-tex-*.woff2`. Every face
+404s, **and the page still renders** — in the browser's fallback font, silently. Fixed by
+vendoring the combined `tex-mml-chtml-mathjax-tex.js`, which has the font baked in.
+
+**2. The speech hang.** v4 enables `enableSpeech`/`enableBraille`/`enableEnrichment` by
+default. Without the speech-rule engine vendored, `attachSpeech` queues one never-settling
+promise per expression into `MathDocument._actionPromises`; `renderPromise` awaits
+`Promise.all` of them, so **the typeset never resolves although the equations are visibly
+rendered.** The `wait` is never released and the loading screen stays up forever — nothing
+rejects, so nothing is logged.
+
+It appears only on the **second** visit to a page, where the plugin's typeset is no longer the
+first render. A single-page smoke test passes.
+
+Two dead ends worth recording, because both looked correct:
+
+- Setting the three flags to `false` under `options` **does not work** — `MenuHandler`
+  recomputes `enableSpeech`/`enableBraille` from its own settings after the document is built.
+  The fix is `options.renderActions.attachSpeech = []`.
+- Moving them to the config's top level also does nothing — `Startup.getDocument()` reads
+  document options from `MathJax.config.options`.
+
+**`typesetClear()` was exonerated.** Clear-then-typeset, two passes with a clear between, and
+a clear during an in-flight typeset all resolve. The Phase 2 reasoning stands.
+
+A 15s ceiling (`TYPESET_TIMEOUT`) now bounds every typeset, so any future never-settling
+promise degrades to a logged failure and a released `wait` rather than a frozen course.
+
+### Accessibility (#5) — spiked, and deliberately not in this PR
+
+**The position is now a regression, not a gap.** Disabling `attachSpeech` means equations
+carry no speech text: a screen reader gets glyph structure rather than a readable expression.
+That engages WCAG **Level A** (1.1.1, 1.3.1, 4.1.2). It was accepted only because the
+alternative is a course that never finishes loading, which is worse for everyone — including
+screen-reader users. It is stated plainly in both READMEs.
+
+**The spike found the fix tractable:**
+
+| | |
+| :--- | :--- |
+| Payload | **~1MB**, not 4.6MB — that figure is 15 locales. A language-scoped course needs `en.json` + `base.json` (~740KB) plus `speech-worker.js` (415KB); Nemeth braille adds ~220KB. |
+| Files | **19.** |
+| Grunt | Collates `sre/` correctly. |
+| Worker | **Proven to start** — built by hand against the collated path, it returned `{"cmd":"Ready"}`. This was the main unknown. |
+| a11y JS | Already in the vendored bundle. |
+
+**Why it is a separate PR rather than a stretch goal here:**
+
+1. **Unfinished.** The worker starts but speech never attaches — no worker traffic, no
+   `aria-label`s. The enrichment→speech pipeline is not firing and the cause is unknown.
+   Holding vendoring behind that would delay a finished, verified result.
+2. **An unresolved constraint.** The worker is created from a blob URL whose `importScripts()`
+   cannot resolve a page-relative path, so it needs absolute URLs — while `LIBRARY_PATH` is
+   deliberately relative so courses play from a subdirectory or from disk. **A SCORM package
+   opened from `file://` may not be able to run the worker at all.**
+3. **A cheaper route is untested.** `assistive-mml` attaches hidden MathML with no worker, and
+   may clear the same Level A bar for a fraction of the cost and none of the `file://` risk.
+4. **Blast radius.** This PR's risk already sits in the migration. Adding a second lazily
+   loaded subsystem — one whose silent-failure mode Phase 6 just demonstrated twice — would
+   make any regression harder to isolate.
+5. **It cannot be signed off from a terminal.** "Wired up" is not "accessible"; #5 needs real
+   screen-reader verification.
+
+**Estimate: 1–2 days**, mostly on (1) and screen-reader testing. **Start with (3)** —
+establish whether `assistive-mml` suffices before paying for the speech worker.
 
 ---
 ## Recommendation

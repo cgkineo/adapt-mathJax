@@ -22,16 +22,19 @@
                 },
                 "_src": {
                   "type": "string",
-                  "default": "https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-mml-chtml.js",
+                  "default": "libraries/mathjax/4/tex-mml-chtml.js",
                   "title": "Source",
                   "inputType": "Text",
-                  "help": "The URL of the MathJax library to load. Only change this to load a different version — for example, an older MathJax 2 build with a matching In-line config"
+                  "help": "The URL of the MathJax library to load. Defaults to the copy vendored with this plugin, which works offline. Only change this to load a different version — for example, an older MathJax 2 build with a matching In-line config"
                 },
                 "_inlineConfig": {
                   "type": "object",
                   "default": {
                     "loader": {
-                      "load": ["[tex]/noerrors", "[tex]/noundefined"]
+                      "load": ["[tex]/noerrors", "[tex]/noundefined"],
+                      "paths": {
+                        "mathjax": "libraries/mathjax/4/"
+                      }
                     },
                     "tex": {
                       "packages": {
@@ -40,6 +43,15 @@
                       "inlineMath": [["\\(", "\\)"]],
                       "displayMath": [["\\[", "\\]"], ["$$", "$$"]]
                     },
+                    "chtml": {
+                      "fontURL": "libraries/mathjax/4/chtml/woff2"
+                    },
+                    "options": {
+                      "enableMenu": false
+                    },
+                    "enableSpeech": false,
+                    "enableBraille": false,
+                    "enableEnrichment": false,
                     "startup": {
                       "typeset": false
                     }

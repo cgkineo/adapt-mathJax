@@ -125,7 +125,30 @@ The defects above appear **on migration to core v6**, not today. It also imposes
 | Notation coverage | Full library on the Step 2 path — costs little over minimal, since bundle + fonts dominate. |
 | Vendoring | **Part of Step 2, not the default.** MathJax 2.7.9 unpacks to 62MB across 3,147 files; vendoring it is impractical. Offline support therefore arrives with the v4 upgrade. |
 | Migration | Minimal and universal — cannot alter rendering. |
-| Accessibility (#5) | Deferred. Note v4 has built-in speech/braille, which is an argument for taking Step 2 eventually. |
+| Accessibility (#5) | **Deferred — out of scope for this pass, and now an active regression rather than a gap.** Phase 6 had to disable MathJax 4's default speech/braille to stop the course hanging. See the rationale below, and the Phase 6 spike for cost and route. |
+
+---
+
+### Why accessibility is deferred, not bundled in
+
+**[#5](https://github.com/cgkineo/adapt-mathJax/issues/5) is a separate, already-open problem with its own thread** — open since February 2019, with Simon Date offering to PR a fix Oliver Foster had suggested. Redoing that scoping inside this plan would duplicate work already in motion elsewhere rather than build on it.
+
+**The governing constraint here is "don't break existing client builds," not "improve them."** Every defect this plan fixes traces back to unblocking NPL's migration — the stuck loading overlay, raw LaTeX in trickle blocks, the popup TypeError, the framework-v6 incompatibility. Accessibility isn't one of those blockers, so pulling it in would be scope creep against the plan's own organising insight.
+
+**Doing it properly wants v4's built-in speech/braille support as a foundation, not as a bundled afterthought.** This plan's job is to get the plugin onto v4 safely; that is the prerequisite, not the accessibility work itself. Wiring up speech/braille output is a distinct effort — UI decisions about how it surfaces, testing against real screen readers — that deserves its own scoped plan rather than being squeezed into a migration-safety-focused one.
+
+**Risk containment.** This plan already introduces the project's main risk in Phase 4 — a migration that, for the first time, is allowed to change what renders for a subset of courses, which is why that phase is escalated to Opus. Adding a second, functionally unrelated risk surface — accessibility behaviour changes — into the same body of work would make it harder to isolate the cause if something regressed.
+
+**Net effect:** #5 stays open, is not re-scoped by this plan beyond noting the v4 dependency, and v4 becomes the enabling step for eventually closing it — see the Phase 5 write-back to #5 and the Risks table below.
+
+> **⚠️ UPDATED 2026-09-11, after Phase 6.** The reasoning above still holds, but the *position*
+> has changed and is now worse than "deferred". MathJax 4 enables speech and braille by
+> default, and Phase 6 had to **switch them off** to stop the course hanging on a missing
+> speech-rule engine. This is therefore an active regression against the library's own
+> defaults, not simply an improvement we have not made yet. Phase 6 also spiked the fix and
+> found it tractable — ~1MB, 19 files, worker proven to start — but unfinished, with an
+> unresolved `file://` constraint and a cheaper untested alternative (`assistive-mml`). See
+> **Accessibility: spiked, deferred, and why it is its own PR** under Phase 6.
 
 ---
 
@@ -392,7 +415,18 @@ main risk — hence Opus 5.
 - **#5** — keep open as the deferred a11y follow-up; note v4's built-in speech is the route, which is an argument for eventually taking Step 2.
 - **ROADMAP.md** — both anchors resolve to #9; sync via `/commit-adapt-roadmap`.
 
-### Phase 6 — Vendoring & rollout (was "Step 2", now part of the main body of work)
+### Phase 6 — Vendoring & rollout (was "Step 2", now part of the main body of work) ✅ VENDORING COMPLETE (2026-09-11)
+
+> **Outcome:** MathJax 4.1.3 + the TeX font are vendored to `libraries/mathjax/4/` (1.3MB, 26
+> files) and verified rendering offline in headless Chrome — **zero external requests, zero
+> `cdnjs` references left in the built bundle.** Two silent failures were found and fixed by
+> that verification; both are recorded below because neither surfaces as an error.
+>
+> **Accessibility (#5) was spiked during this phase and is deliberately NOT in this PR** —
+> see *Accessibility: spiked, deferred, and why it is its own PR* below.
+>
+> Still outstanding from the original scope: the pilot-course rollout, which needs a real
+> instance rather than the local test course.
 
 > **⚠️ NO LONGER OPTIONAL OR CLIENT-SCHEDULED.** Phase 0 collapsed the two-step plan into one,
 > so this is a normal phase of the delivery rather than a later opt-in. Its **technical
@@ -419,6 +453,96 @@ main risk — hence Opus 5.
 
 Vendor MathJax 4.1.3 + `@mathjax/mathjax-tex-font` into `libraries/mathjax/4/…` — **a subfolder is mandatory**, since `grunt/config/copy.js:194-208` collates all `extensions/*/libraries/**/*` into one flat `build/libraries/`. Preserve MathJax's directory structure so lazy `loader.load` resolution works; anything omitted fails **silently** offline. Set `chtml.fontURL` and `loader.font` explicitly — v4 resolves fonts relative to the bundle, which will not match the collated layout. Add `libraries/README.md` per [adapt-contrib-media's model](../../../../../adapt-framework/src/components/adapt-contrib-media/libraries/README.md). Ship a config-translation migration, and fix the content the harness flagged.
 
+#### What the build actually verified (2026-09-11)
+
+The plan predicted vendoring would fail *silently*. It did, twice, in ways no console error
+revealed — both found only by driving a real build in a browser. **Each is a reason to keep
+the offline test in CI rather than trusting a green build.**
+
+**1. The font trap.** The stock `tex-mml-chtml.js` defaults to MathJax 4's **newcm** font and
+requests `mjx-ncm-*.woff2`, while `@mathjax/mathjax-tex-font` supplies `mjx-tex-*.woff2`. A
+correct `fontURL` therefore still 404s every face, and **the page renders anyway** in the
+browser's fallback font with nothing logged. Fix: vendor the *combined*
+`tex-mml-chtml-mathjax-tex.js` from the font package, which has the TeX font baked in and
+requests only files we ship. This also means `loader.paths.fonts` never has to be redirected
+away from its `cdn.jsdelivr.net` default, because no separate font module is fetched.
+
+**2. The speech hang — the serious one.** MathJax 4 enables `enableSpeech`, `enableBraille`
+and `enableEnrichment` **by default**. With the speech-rule engine unvendored, `attachSpeech`
+pushes one never-settling promise per expression into `MathDocument._actionPromises`;
+`renderPromise` awaits `Promise.all` of them, so **the typeset never resolves even though the
+equations are visibly on screen.** The `wait` taken at `pageView:preReady` is never released
+and the loading screen stays up forever — with no rejection, so nothing is logged. It
+surfaces only on the *second* visit to a page, where our typeset is no longer the first
+render, which is why a single-page smoke test would have missed it.
+
+Two things about the fix are worth recording, because both cost time:
+
+- Setting the three flags to `false` in `options` is **not sufficient**. `MenuHandler`
+  recomputes them from its own saved settings after the document is constructed
+  (`options.enableSpeech = settings.speech && enrich`), putting them back to `true`. The
+  effective fix is `options.renderActions.attachSpeech = []` — an empty array removes a
+  render action.
+- Moving the flags to the config's top level does nothing either: `Startup.getDocument()`
+  builds document options from `MathJax.config.options`, so `options` was the right place all
+  along.
+
+`typesetClear()` in `MathJax3Adapter` was **investigated and exonerated** — clear-then-typeset,
+two passes with a clear between, and a clear during an in-flight typeset all resolve cleanly.
+The Phase 2 comment explaining why it is there stands.
+
+**Defence in depth.** `typeset()` now races the adapter against a 15s ceiling
+(`TYPESET_TIMEOUT`), so a typeset that never settles degrades to a logged failure and a
+released `wait` rather than a frozen course. That guard is deliberately generous: it is a
+stuck-course backstop, not a performance budget.
+
+**Regression cover.** `test/e2e/offline.cy.js` asserts the things that fail silently: every
+`@font-face` resolves to the vendored path, nothing leaves the origin, and — after navigating
+away and back — `_actionPromises` is empty, the overlay is hidden and no `wait` leaked.
+
+#### Accessibility: spiked, deferred, and why it is its own PR
+
+Disabling `attachSpeech` is **a regression against MathJax 4's own defaults**, not merely a
+feature we have not added yet. Equations now carry no speech text, so a screen reader gets
+glyph structure rather than a readable expression. That is a Level A concern (WCAG 1.1.1,
+1.3.1, 4.1.2) and it is stated plainly in both READMEs rather than softened.
+
+It was accepted here only because the alternative is a course that never finishes loading,
+which is worse for every user including screen-reader users.
+
+**A spike established that fixing it is tractable but not a config change:**
+
+| | |
+| :--- | :--- |
+| Payload | **~1MB, not 4.6MB.** That figure is 15 locale files; a language-scoped Adapt course needs `en.json` + `base.json` (~740KB) plus `speech-worker.js` (415KB). Nemeth braille adds ~220KB. |
+| File count | **19**, not thousands — nothing like the 3,147-file problem that made vendoring MathJax 2 impractical. |
+| Grunt | Collates `sre/` correctly; the files serve from the build. |
+| The worker | **Proven to run.** Constructing it by hand against the collated path returned `{"cmd":"Ready"}`. That was the main unknown, and it is a green light. |
+| The a11y JS | **Already in our bundle** — `attachSpeech` ships with it. No extra library. |
+
+**Why it is nonetheless a separate PR, and not a stretch goal on this one:**
+
+1. **It is unfinished.** The worker starts, but speech never attaches — no worker traffic, no
+   `aria-label`s. The enrichment→speech pipeline is not firing and the cause is not yet known.
+   Landing vendoring behind that unknown would hold up a result that is finished and verified.
+2. **It carries an unresolved constraint.** The worker is built from a blob URL, whose
+   `importScripts()` cannot resolve a page-relative path — so speech needs absolute URLs,
+   while `LIBRARY_PATH` is deliberately relative so courses play from a subdirectory or from
+   disk. **A SCORM package opened from `file://` may not be able to run the worker at all.**
+   That needs confirming before committing to the approach.
+3. **The cheaper route has not been tested.** `assistive-mml` attaches hidden MathML with no
+   worker, and may clear the same Level A bar for a fraction of the cost and none of the
+   `file://` risk. Testing that should come before vendoring ~1MB of speech engine.
+4. **Blast radius.** This PR's risk is already concentrated in the migration. Adding a
+   speech-worker payload — a second lazily-loaded subsystem with its own silent-failure mode,
+   as Phase 6 has just demonstrated twice — would make any regression harder to isolate.
+5. **It cannot be signed off from a terminal.** "Wired up" is not "accessible". #5 needs
+   verification with a real screen reader, which is a different kind of testing session.
+
+**Estimate: 1–2 days**, most of it on (1) and on screen-reader testing. **Recommended first
+step is (3), not vendoring** — establish whether `assistive-mml` is sufficient before paying
+for the worker.
+
 ---
 
 ## Verification
@@ -444,7 +568,9 @@ No `grunt`/`npm` commands without explicit authorization.
 | **MathJax 2.7.2 may already be broken in current browsers.** Gates the entire two-step approach. | Phase 0 item 1. **Blocking.** Fallback is 2.7.9, then forced v4. |
 | **Content-level TeX incompatibility — unverified.** 15% of sampled expressions contain non-TeX input (`&nbsp;`, `\`+U+00A0, literal `×`, `<br />` inside delimiters). MathJax 2 parses them successfully today; whether v4's rewritten parser does is **unknown**, not established. | Removed from the critical path entirely by making v4 opt-in. The harness resolves the question before Step 2 is scheduled — do not treat it as a known failure until it is measured. |
 | **Step 2 may never happen**, leaving NPL on an EOL library indefinitely. | Accepted consequence of prioritising safety. Deprecation warning keeps it visible; #5 (a11y) is the standing argument for eventually taking it. |
-| **Offline support does not arrive until Step 2**, since vendoring MathJax 2 is impractical (62MB, 3,147 files). | Acceptable unless a client has a hard air-gap requirement today — worth confirming none does. |
+| **Offline support does not arrive until Step 2**, since vendoring MathJax 2 is impractical (62MB, 3,147 files). | ✅ **Resolved 2026-09-11.** MathJax 4 vendors in 1.3MB / 26 files and is verified rendering offline with zero external requests. The 62MB figure was a MathJax 2 problem only. |
+| **Equations carry no screen-reader text**, because Phase 6 disabled MathJax 4's default speech/braille to stop a missing speech-rule engine hanging the typeset. A screen reader gets glyph structure, not a readable expression — a **regression against the library's defaults**, at WCAG Level A (1.1.1, 1.3.1, 4.1.2). | Accepted only because the alternative is a course that never loads. Stated plainly in both READMEs rather than buried. Tracked as #5 with a costed route (Phase 6 spike: ~1MB, 19 files, worker proven to start). **Test `assistive-mml` first** — it needs no worker and may clear the same bar far more cheaply. |
+| **A vendored course opened from `file://` may not generate speech at all**, if #5 is implemented via the speech worker: it is built from a blob URL whose `importScripts()` cannot resolve a relative path, and absolute URLs do not exist for a package played from disk. | Unresolved, and a reason #5 is its own PR rather than a stretch goal here. Confirm before committing to the worker approach; `assistive-mml` sidesteps it entirely. |
 | **Single point of failure: every course loads MathJax from cdnjs at runtime.** An outage, network policy or CSP fails every equation in every course at once. May also not survive a security review at a national laboratory. | Pre-existing, not introduced here. The strongest standing argument for Step 2's vendoring, independent of the version upgrade. |
 | **Step 2 is an estate-wide data edit**, because `_src` is written into every course's `config.json` rather than inherited. | Route it through the `adapt-migrations` runner, never by hand. Per-course granularity means it can still be piloted on one module first. |
 | **Two supported library paths mean permanent dual testing.** | Bounded: both adapters are ~15 lines. The alternative was breaking courses. |

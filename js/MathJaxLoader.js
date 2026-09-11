@@ -14,20 +14,87 @@ import MathJax3Adapter from './adapters/MathJax3Adapter';
  * A course that stores its own values made a deliberate choice and is honoured
  * instead; see `js/adapt-mathJax.js`.
  */
-export const DEFAULT_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-mml-chtml.js';
+/**
+ * Where the vendored library lands in a build.
+ *
+ * `grunt/config/copy.js` collates every `extensions/*&#47;libraries/**` into one
+ * flat `build/libraries/`, keeping only the path *after* the `libraries/`
+ * segment — hence the mandatory `mathjax/4/` subfolder in this repo, which is
+ * what stops MathJax's files colliding with every other plugin's.
+ *
+ * Relative, with no leading slash: a course can be served from a subdirectory
+ * or played from disk, and both must resolve. This is also what kills the old
+ * protocol-relative `//cdnjs…` bug, which resolved to `file://cdnjs…` and
+ * silently removed all maths when a package was opened locally.
+ */
+const LIBRARY_PATH = 'libraries/mathjax/4';
+
+export const DEFAULT_SRC = `${LIBRARY_PATH}/tex-mml-chtml.js`;
 
 /**
  * `noerrors` degrades a failed expression to its original TeX; `noundefined`
  * renders an unknown macro as its own name. Both are softeners rather than
  * guarantees — structural errors (an unclosed brace, a missing argument) still
  * reach the page as a message. See `.bench/FINDINGS.md`.
+ *
+ * `loader.paths` and `chtml.fontURL` are what make the vendored copy work
+ * offline, and both are mandatory rather than tidiness. MathJax resolves lazy
+ * `loader.load` requests and its webfonts relative to the *bundle's own* URL,
+ * which does not match the collated layout above — left unset, the extensions
+ * and fonts 404 and the failure is **silent**: equations still typeset, in a
+ * fallback font, with no console error. See Phase 6 in `.bench/PLAN.md`.
+ *
+ * `fontURL` alone is not enough, and getting this wrong is the trap. The stock
+ * `tex-mml-chtml.js` bundle defaults to MathJax 4's **newcm** font and asks for
+ * `mjx-ncm-*.woff2`; the vendored font package supplies `mjx-tex-*.woff2`, so a
+ * correct `fontURL` still 404s every face — silently, in a fallback font. The
+ * bundle here is therefore `tex-mml-chtml-mathjax-tex.js` from
+ * `@mathjax/mathjax-tex-font`, which has the TeX font baked in and asks only
+ * for files we ship. Swapping it back for the stock bundle reintroduces the
+ * bug. `test/e2e/offline.cy.js` asserts every `@font-face` resolves locally.
+ *
+ * The four `options` flags are **load-bearing, not preferences.** All four
+ * default to `true` in MathJax 4 and every one of them reaches code this plugin
+ * does not vendor:
+ *
+ * - `enableMenu` lazily loads `[mathjax]/ui/menu`.
+ * - `enableSpeech` / `enableBraille` / `enableEnrichment` start a speech
+ *   webworker and pull in the speech-rule engine from `[mathjax]/sre` (~4.6MB,
+ *   deliberately not vendored — accessibility is deferred to #5).
+ *
+ * Left on, `attachSpeech` saves one never-settling promise per expression into
+ * `MathDocument._actionPromises`; `renderPromise` awaits `Promise.all` of them,
+ * so the typeset never resolves even though the equations are visibly on screen.
+ * The `wait` taken for that content object is then never released and the
+ * loading screen stays up forever — with no console error, because nothing
+ * rejected. Observed on the second visit to a page, where our typeset is no
+ * longer the first render. Diagnosed in Phase 6; see `libraries/README.md`.
+ *
+ * Turning speech back on requires vendoring `sre/` and its mathmaps, and is part
+ * of #5 rather than a config change.
  */
 export const DEFAULT_CONFIG = {
-  loader: { load: ['[tex]/noerrors', '[tex]/noundefined'] },
+  loader: {
+    load: ['[tex]/noerrors', '[tex]/noundefined'],
+    paths: { mathjax: LIBRARY_PATH }
+  },
   tex: {
     packages: { '[+]': ['noerrors', 'noundefined'] },
     inlineMath: [['\\(', '\\)']],
     displayMath: [['\\[', '\\]'], ['$$', '$$']]
+  },
+  chtml: { fontURL: `${LIBRARY_PATH}/chtml/woff2` },
+  options: {
+    enableMenu: false,
+    enableSpeech: false,
+    enableBraille: false,
+    enableEnrichment: false,
+    // The flags above are not sufficient on their own: MenuHandler recomputes
+    // `enableSpeech`/`enableBraille` from its own saved settings after the
+    // document is built (`options.enableSpeech = settings.speech && enrich`),
+    // putting them back to `true`. Removing the render action is what actually
+    // stops `attachSpeech` running — an empty array disables an action.
+    renderActions: { attachSpeech: [] }
   },
   startup: { typeset: false }
 };

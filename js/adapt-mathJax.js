@@ -15,6 +15,12 @@ const MATH_DELIMITERS = /\\\\\(|\\\\\[|\$\$/;
 /** Coalescing window for ungated typeset requests. */
 const FLUSH_DELAY = 50;
 
+/**
+ * Ceiling on a single typeset pass. Generous — this is a stuck-course guard,
+ * not a performance budget; a slow but working typeset must never trip it.
+ */
+const TYPESET_TIMEOUT = 15000;
+
 class MathJax extends Backbone.Controller {
 
   initialize() {
@@ -184,7 +190,21 @@ class MathJax extends Backbone.Controller {
       !attached.some(other => other !== element && other.contains(element))
     );
     if (!outermost.length) return;
-    await this._adapter.typeset(outermost);
+
+    // Bounded, because a typeset that never settles would otherwise hold the
+    // loading screen forever. MathJax serialises every typeset through one
+    // internal promise chain (`MathDocument.whenReady`) and waits indefinitely
+    // on a lazily-loaded file that never arrives — offline, a missing component
+    // hangs with no error rather than rejecting. That is a stuck course, so it
+    // is treated as a failure: the caller logs, releases the `wait`, and the
+    // page continues with that pass un-typeset.
+    await Promise.race([
+      this._adapter.typeset(outermost),
+      new Promise((resolve, reject) => setTimeout(
+        () => reject(new Error(`adapt-mathJax: typeset did not complete within ${TYPESET_TIMEOUT}ms`)),
+        TYPESET_TIMEOUT
+      ))
+    ]);
 
     // Typesetting changes element dimensions, so dependent components need to
     // recalculate. Isolated from the typeset above: this dispatches synchronously
