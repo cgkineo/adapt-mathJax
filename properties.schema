@@ -13,30 +13,50 @@
               "type": "object",
               "legend": "MathJax",
               "properties": {
+                "_isEnabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "title": "Enable MathJax",
+                  "inputType": "Checkbox",
+                  "help": "If enabled, forces MathJax to load even if no maths is detected in the course content. Set to false to prevent MathJax from loading under any circumstances. Leave unset to load automatically only when maths is detected in the course"
+                },
+                "_src": {
+                  "type": "string",
+                  "default": "https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-mml-chtml.js",
+                  "title": "Source",
+                  "inputType": "Text",
+                  "help": "The URL of the MathJax library to load. Only change this to load a different version — for example, an older MathJax 2 build with a matching In-line config"
+                },
                 "_inlineConfig": {
                   "type": "object",
                   "default": {
-                    "extensions": [
-                      "tex2jax.js"
-                    ],
-                    "jax": [
-                      "input/TeX",
-                      "output/HTML-CSS"
-                    ]
+                    "loader": {
+                      "load": ["[tex]/noerrors", "[tex]/noundefined"]
+                    },
+                    "tex": {
+                      "packages": {
+                        "[+]": ["noerrors", "noundefined"]
+                      },
+                      "inlineMath": [["\\(", "\\)"]],
+                      "displayMath": [["\\[", "\\]"], ["$$", "$$"]]
+                    },
+                    "startup": {
+                      "typeset": false
+                    }
                   },
                   "title": "In-line config",
                   "inputType": {
                     "type": "CodeEditor",
                     "mode": "json"
                   },
-                  "help": "Define any in-line configuration for MathJax"
+                  "help": "MathJax configuration object, set as window.MathJax before the library loads. Only change this together with a matching Source — the shape of this object differs between MathJax major versions"
                 },
-                "_src": {
-                  "type": "string",
-                  "default": "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js",
-                  "title": "Source",
-                  "inputType": "Text",
-                  "help": "Enter the URL to the copy of MathJax which should be loaded"
+                "_loadTimeout": {
+                  "type": "number",
+                  "default": 10000,
+                  "title": "Load timeout",
+                  "inputType": "Number",
+                  "help": "How long, in milliseconds, to wait for MathJax to become ready before giving up and continuing the course without typesetting"
                 }
               }
             }

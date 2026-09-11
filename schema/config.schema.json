@@ -1,0 +1,63 @@
+{
+  "$anchor": "mathJax-config",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "$patch": {
+    "source": {
+      "$ref": "config"
+    },
+    "with": {
+      "properties": {
+        "_mathJax": {
+          "type": "object",
+          "title": "MathJax",
+          "default": {},
+          "properties": {
+            "_isEnabled": {
+              "type": "boolean",
+              "title": "Enable MathJax",
+              "description": "If enabled, forces MathJax to load even if no maths is detected in the course content. Set to false to prevent MathJax from loading under any circumstances. Leave unset to load automatically only when maths is detected in the course",
+              "default": true
+            },
+            "_src": {
+              "type": "string",
+              "title": "Source",
+              "description": "The URL of the MathJax library to load. Only change this to load a different version — for example, an older MathJax 2 build with a matching In-line config",
+              "default": "https://cdnjs.cloudflare.com/ajax/libs/mathjax/4.1.3/tex-mml-chtml.js"
+            },
+            "_inlineConfig": {
+              "type": "object",
+              "title": "In-line config",
+              "description": "MathJax configuration object, set as window.MathJax before the library loads. Only change this together with a matching Source — the shape of this object differs between MathJax major versions",
+              "default": {
+                "loader": {
+                  "load": ["[tex]/noerrors", "[tex]/noundefined"]
+                },
+                "tex": {
+                  "packages": {
+                    "[+]": ["noerrors", "noundefined"]
+                  },
+                  "inlineMath": [["\\(", "\\)"]],
+                  "displayMath": [["\\[", "\\]"], ["$$", "$$"]]
+                },
+                "startup": {
+                  "typeset": false
+                }
+              },
+              "inputType": {
+                "type": "CodeEditor",
+                "mode": "json"
+              }
+            },
+            "_loadTimeout": {
+              "type": "number",
+              "title": "Load timeout",
+              "description": "How long, in milliseconds, to wait for MathJax to become ready before giving up and continuing the course without typesetting",
+              "default": 10000
+            }
+          }
+        }
+      }
+    }
+  }
+}
