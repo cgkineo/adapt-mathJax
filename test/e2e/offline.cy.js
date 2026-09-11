@@ -33,7 +33,10 @@ describe('adapt-mathJax renders offline from the vendored library', function () 
     cy.window().then(win => {
       // The config the plugin actually applied, not the one we think it did.
       const config = win.MathJax?.config ?? {};
-      expect(config.loader?.paths?.mathjax, 'loader.paths.mathjax').to.equal('libraries/mathjax/4/');
+      // No trailing slash: MathJax resolves `[tex]/noerrors` by concatenating
+      // this value with the rest of the name, so a slash here produces
+      // `libraries/mathjax/4//input/…`.
+      expect(config.loader?.paths?.mathjax, 'loader.paths.mathjax').to.equal('libraries/mathjax/4');
       expect(config.chtml?.fontURL, 'chtml.fontURL').to.equal('libraries/mathjax/4/chtml/woff2');
       expect(win.MathJax?.version, 'MathJax version').to.match(/^4\./);
     });
@@ -62,7 +65,11 @@ describe('adapt-mathJax renders offline from the vendored library', function () 
     // that never lifts — and only from the second render onwards.
     cy.get('mjx-container', { timeout: 20000 }).should('have.length.greaterThan', 0);
 
-    cy.visit('/#/id/co-05');
+    // Any other real page will do; the point is to tear this one down and come
+    // back, so that the second typeset is not the document's first render.
+    // It must actually exist — navigating to an unknown id leaves the learner
+    // on co-400 and the test passes without ever creating the condition.
+    cy.visit('/#/id/co-100');
     cy.get('.page', { timeout: 20000 }).should('exist');
     cy.visit('/#/id/co-400');
 

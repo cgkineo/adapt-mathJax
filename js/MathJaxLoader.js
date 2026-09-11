@@ -1,34 +1,47 @@
-import Adapt from 'core/js/adapt';
 import logging from 'core/js/logging';
 import MathJax2Adapter from './adapters/MathJax2Adapter';
 import MathJax3Adapter from './adapters/MathJax3Adapter';
 
 /**
- * The rollback lever.
- *
- * Courses migrated by `migrations/v1.js` have no stored `_src` or
- * `_inlineConfig`, so they follow these two constants. Reverting the estate to
- * an earlier library is a change to `DEFAULT_SRC` (and, if the major changes,
- * `DEFAULT_CONFIG`) plus a redeploy — never a per-course data edit.
- *
- * A course that stores its own values made a deliberate choice and is honoured
- * instead; see `js/adapt-mathJax.js`.
- */
-/**
  * Where the vendored library lands in a build.
  *
- * `grunt/config/copy.js` collates every `extensions/*&#47;libraries/**` into one
- * flat `build/libraries/`, keeping only the path *after* the `libraries/`
- * segment — hence the mandatory `mathjax/4/` subfolder in this repo, which is
- * what stops MathJax's files colliding with every other plugin's.
+ * `grunt/config/copy.js` collates every `extensions/<plugin>/libraries` tree
+ * from every installed plugin into one flat `build/libraries/`, keeping only
+ * the path *after* the `libraries/` segment — hence the mandatory `mathjax/4/`
+ * subfolder in this repo, which is what stops MathJax's files colliding with
+ * every other plugin's.
  *
  * Relative, with no leading slash: a course can be served from a subdirectory
  * or played from disk, and both must resolve. This is also what kills the old
  * protocol-relative `//cdnjs…` bug, which resolved to `file://cdnjs…` and
  * silently removed all maths when a package was opened locally.
+ *
+ * No **trailing** slash either. MathJax's loader resolves a prefixed path by
+ * bare concatenation — `paths[prefix] + name.substring(…)` — so `[tex]/noerrors`
+ * becomes `libraries/mathjax/4/input/tex/extensions/noerrors.js` from this
+ * value, and `libraries/mathjax/4//input/…` from one with a slash on the end.
  */
 const LIBRARY_PATH = 'libraries/mathjax/4';
 
+/**
+ * The rollback lever.
+ *
+ * Courses migrated by `migrations/v1.js` store no `_src` or `_inlineConfig`, so
+ * they follow this constant and `DEFAULT_CONFIG` below. Reverting the estate to
+ * an earlier library is a change here — and, if the major version changes, to
+ * `DEFAULT_CONFIG` — plus a redeploy. Never a per-course data edit.
+ *
+ * Neither constant is mirrored as a schema `default`, deliberately. Their
+ * absence from a course is the signal that selects them, so a schema default
+ * would be self-defeating: it writes today's library plumbing into every course
+ * the authoring tool creates and freezes it there, leaving those courses
+ * pointing at a path the next upgrade removes. It would also put settings in
+ * front of authors whose only purpose is switching off parts of MathJax this
+ * plugin does not vendor, which is not a question an author can answer.
+ *
+ * A course that stores its own values made a deliberate choice and is honoured
+ * instead; see `resolveLibrary` below.
+ */
 export const DEFAULT_SRC = `${LIBRARY_PATH}/tex-mml-chtml.js`;
 
 /**
@@ -54,7 +67,8 @@ export const DEFAULT_SRC = `${LIBRARY_PATH}/tex-mml-chtml.js`;
  * bug. `test/e2e/offline.cy.js` asserts every `@font-face` resolves locally.
  *
  * The four `options` flags are **load-bearing, not preferences.** All four
- * default to `true` in MathJax 4 and every one of them reaches code this plugin
+ * default to `true` in MathJax 4, so each one switches off something the
+ * library turns on by itself, and every one of them reaches code this plugin
  * does not vendor:
  *
  * - `enableMenu` lazily loads `[mathjax]/ui/menu`.
@@ -119,16 +133,6 @@ function loadScript(src) {
 }
 
 /**
- * @param {number} milliseconds
- * @returns {Promise} Rejects once the period has elapsed.
- */
-function timeout(milliseconds) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => reject(new Error(`adapt-mathJax: MathJax did not become ready within ${milliseconds}ms`)), milliseconds);
-  });
-}
-
-/**
  * Chooses an adapter by feature detection *after* the library has loaded, so
  * the version is a fact rather than an inference from a URL. `_inlineConfig` is
  * opaque and is never parsed.
@@ -169,6 +173,47 @@ function onFormatError(jax, error) {
   return jax.formatError(error);
 }
 
+/**
+ * Resolves the stored `_src`/`_inlineConfig` pair, treating empty as absent.
+ *
+ * Neither field carries a schema default, so the authoring tool presents an
+ * empty text box and an empty code editor. An author who opens the MathJax
+ * config and saves it untouched therefore stores `''` and `{}` — and taken
+ * literally those would inject a script with no `src`, and hand the vendored v4
+ * bundle an empty config. An empty config is not "no config": it is MathJax 4's
+ * own defaults, speech pipeline and all, which is a course that never leaves
+ * the loading screen. Both fall back to the plugin's own pair instead.
+ *
+ * @param {object} [config] The course's `_mathJax` config, if any.
+ * @returns {{src: string, inlineConfig: object, isStoredConfig: boolean}}
+ */
+function resolveLibrary(config) {
+  const storedConfig = config?._inlineConfig;
+  const storedSrc = config?._src || null;
+  // Type-checked as well as counted: `Object.keys('abc').length` is 3, so a
+  // config that reached the model as an unparsed string would otherwise be
+  // taken for a populated object and assigned to `window.MathJax` as a string.
+  const isStoredConfig = Boolean(storedConfig) && typeof storedConfig === 'object' && Boolean(Object.keys(storedConfig).length);
+
+  // Reported, not overridden, in both directions. Either half of the pair is a
+  // deliberate act and discarding it silently would be worse than honouring it
+  // — but each half alone pairs an author's intent with the plugin's, which is
+  // a configuration written for one MathJax version applied to another, and
+  // that fails without ever reaching the console.
+  if (isStoredConfig && !storedSrc) {
+    logging.warn('adapt-mathJax: config.json stores an _inlineConfig with no _src, so the library supplied by this plugin will be loaded under a configuration written for a different version. Set both fields or neither.');
+  }
+  if (storedSrc && !isStoredConfig) {
+    logging.warn('adapt-mathJax: config.json stores an _src with no _inlineConfig, so a library this plugin does not supply will be loaded under this plugin\'s own configuration — including loader paths and a font URL that point into its vendored copy. Set both fields or neither.');
+  }
+
+  return {
+    src: storedSrc ?? DEFAULT_SRC,
+    inlineConfig: isStoredConfig ? storedConfig : DEFAULT_CONFIG,
+    isStoredConfig
+  };
+}
+
 export default class MathJaxLoader {
 
   /**
@@ -180,22 +225,41 @@ export default class MathJaxLoader {
    * @returns {Promise<MathJax2Adapter|MathJax3Adapter>}
    */
   static async load(config) {
-    const src = config?._src ?? DEFAULT_SRC;
-    const isDefaultConfig = !config?._inlineConfig;
-    const inlineConfig = config?._inlineConfig ?? DEFAULT_CONFIG;
+    const { src, inlineConfig, isStoredConfig } = resolveLibrary(config);
+    const loadTimeout = config?._loadTimeout ?? DEFAULT_LOAD_TIMEOUT;
 
-    window.MathJax = inlineConfig;
+    // Cloned, never assigned by reference. MathJax writes its entire API onto
+    // the object it is handed — `startup`, `loader`, `typesetPromise`,
+    // `version`, and back references among them — so assigning the stored
+    // object directly would leave `Adapt.config.get('_mathJax')._inlineConfig`
+    // holding a circular graph, and the next plugin to serialise config would
+    // throw on it. It would also mutate this module's own `DEFAULT_CONFIG`.
+    // A JSON round trip is both sufficient and total here: every source is
+    // plain JSON, either parsed from `config.json` or declared above.
+    window.MathJax = JSON.parse(JSON.stringify(inlineConfig));
 
     // Only attach the reporting hook to the config the plugin owns. A stored
-    // config is passed through verbatim, including any hook it sets itself.
-    if (isDefaultConfig) {
-      window.MathJax.tex.formatError = onFormatError;
-    }
+    // config is honoured as authored; a hook cannot be expressed in JSON, so a
+    // course wanting its own has to attach it from its own plugin.
+    if (!isStoredConfig) window.MathJax.tex.formatError = onFormatError;
 
     await loadScript(src);
 
     const adapter = selectAdapter();
-    await Promise.race([adapter.ready, timeout(Adapt.config.get('_mathJax')?._loadTimeout ?? DEFAULT_LOAD_TIMEOUT)]);
+
+    // Cleared on every path. Left armed, the timer outlives the race it guarded
+    // and holds the page alive for the rest of the timeout for nothing.
+    let handle;
+    try {
+      await Promise.race([
+        adapter.ready,
+        new Promise((resolve, reject) => {
+          handle = setTimeout(() => reject(new Error(`adapt-mathJax: MathJax did not become ready within ${loadTimeout}ms`)), loadTimeout);
+        })
+      ]);
+    } finally {
+      clearTimeout(handle);
+    }
 
     return adapter;
   }

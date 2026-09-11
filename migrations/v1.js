@@ -54,7 +54,7 @@ function isStockPair(mathJaxConfig) {
 })();
 
 describe('adapt-mathJax - v0.2.2 to v1.0.0', async () => {
-  let mathJaxConfig, wasStockPair, srcBefore, inlineConfigBefore, isEnabledBefore;
+  let mathJaxConfig, wasStockPair, srcBefore, inlineConfigBefore, isEnabledBefore, forceLoadBefore;
 
   whereFromPlugin('adapt-mathJax - from <v1.0.0', { name: 'adapt-mathJax', version: '<1.0.0' });
 
@@ -67,6 +67,7 @@ describe('adapt-mathJax - v0.2.2 to v1.0.0', async () => {
     // check later compares against and assertion 2 passes vacuously.
     inlineConfigBefore = _.cloneDeep(mathJaxConfig._inlineConfig);
     isEnabledBefore = mathJaxConfig._isEnabled;
+    forceLoadBefore = mathJaxConfig._forceLoad;
     return true;
   });
 
@@ -117,12 +118,16 @@ describe('adapt-mathJax - v0.2.2 to v1.0.0', async () => {
   /**
    * `_isEnabled` is deliberately never written — neither backfilled nor removed.
    *
-   * `shouldLoad` treats it as tri-state: `false` never loads, `true` always
-   * loads, and absent means "scan the course content for maths on every load".
-   * Writing the scan's answer into the file would only cache what the runtime
-   * already computes for free, and would freeze a verdict taken against today's
-   * content: a course later given an equation would keep a stored `false` and
-   * silently stop rendering maths.
+   * 0.2.2 had no such field, so in practice no course reaching this migration
+   * stores one; the check is a guard against a later edit quietly adding a
+   * backfill, not a case seen in the estate.
+   *
+   * Backfilling it would be wrong in both directions. `shouldLoad` reads an
+   * absent `_isEnabled` as enabled and then scans the course content for maths
+   * on every load, so writing `true` caches what the runtime computes for free,
+   * and writing `false` freezes a verdict taken against today's content — a
+   * course later given an equation would keep the stored `false` and silently
+   * stop rendering maths.
    *
    * Leaving it absent also keeps the estate honest about what we cannot verify.
    * The detector was only ever validated against one NPL lesson, so stamping a
@@ -130,12 +135,18 @@ describe('adapt-mathJax - v0.2.2 to v1.0.0', async () => {
    * Absent, a missed notation is recoverable on the next load; stored, it is
    * permanent and needs a hand edit to fix.
    *
+   * `_forceLoad` — the flag that skips the scan outright — is new in 1.0.0 and
+   * is likewise never written. Absent, it is falsy, which is the scan, which is
+   * the behaviour every migrated course should get.
+   *
    * A course that already stores either value made a choice, and it is honoured
    * exactly as-is.
    */
-  checkContent('adapt-mathJax - check _mathJax._isEnabled is untouched', async () => {
+  checkContent('adapt-mathJax - check _mathJax._isEnabled and _mathJax._forceLoad are untouched', async () => {
     if (!_.isEqual(mathJaxConfig._isEnabled, isEnabledBefore)) throw new Error('adapt-mathJax - _isEnabled must never be modified by this migration');
     if (_.has(mathJaxConfig, '_isEnabled') !== (isEnabledBefore !== undefined)) throw new Error('adapt-mathJax - _isEnabled must never be added or removed by this migration');
+    if (!_.isEqual(mathJaxConfig._forceLoad, forceLoadBefore)) throw new Error('adapt-mathJax - _forceLoad must never be modified by this migration');
+    if (_.has(mathJaxConfig, '_forceLoad') !== (forceLoadBefore !== undefined)) throw new Error('adapt-mathJax - _forceLoad must never be added or removed by this migration');
     return true;
   });
 

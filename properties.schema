@@ -18,50 +18,29 @@
                   "default": true,
                   "title": "Enable MathJax",
                   "inputType": "Checkbox",
-                  "help": "If enabled, forces MathJax to load even if no maths is detected in the course content. Set to false to prevent MathJax from loading under any circumstances. Leave unset to load automatically only when maths is detected in the course"
+                  "help": "Whether this course may load MathJax at all. Left enabled, the library is loaded only where the course content actually contains maths"
+                },
+                "_forceLoad": {
+                  "type": "boolean",
+                  "default": false,
+                  "title": "Always load MathJax",
+                  "inputType": "Checkbox",
+                  "help": "Loads MathJax even where no maths is found in the course content. Only needed where equations are injected at runtime by another plugin, which the content scan cannot see"
                 },
                 "_src": {
                   "type": "string",
-                  "default": "libraries/mathjax/4/tex-mml-chtml.js",
                   "title": "Source",
                   "inputType": "Text",
-                  "help": "The URL of the MathJax library to load. Defaults to the copy vendored with this plugin, which works offline. Only change this to load a different version — for example, an older MathJax 2 build with a matching In-line config"
+                  "help": "Leave empty to use the MathJax version supplied with this plugin, which works offline. Set this only to load a different major version, and set In-line config to a matching configuration at the same time"
                 },
                 "_inlineConfig": {
                   "type": "object",
-                  "default": {
-                    "loader": {
-                      "load": ["[tex]/noerrors", "[tex]/noundefined"],
-                      "paths": {
-                        "mathjax": "libraries/mathjax/4/"
-                      }
-                    },
-                    "tex": {
-                      "packages": {
-                        "[+]": ["noerrors", "noundefined"]
-                      },
-                      "inlineMath": [["\\(", "\\)"]],
-                      "displayMath": [["\\[", "\\]"], ["$$", "$$"]]
-                    },
-                    "chtml": {
-                      "fontURL": "libraries/mathjax/4/chtml/woff2"
-                    },
-                    "options": {
-                      "enableMenu": false
-                    },
-                    "enableSpeech": false,
-                    "enableBraille": false,
-                    "enableEnrichment": false,
-                    "startup": {
-                      "typeset": false
-                    }
-                  },
                   "title": "In-line config",
                   "inputType": {
                     "type": "CodeEditor",
                     "mode": "json"
                   },
-                  "help": "MathJax configuration object, set as window.MathJax before the library loads. Only change this together with a matching Source — the shape of this object differs between MathJax major versions"
+                  "help": "Leave empty to use the configuration supplied with this plugin. Set as window.MathJax before the library loads, so its shape is specific to the MathJax major version named by Source — set the two together or neither"
                 },
                 "_loadTimeout": {
                   "type": "number",

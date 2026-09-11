@@ -1,12 +1,5 @@
 "_mathJax": {
-	"_inlineConfig": {
-		"extensions": [
-			"tex2jax.js"
-		],
-		"jax": [
-			"input/TeX",
-			"output/HTML-CSS"
-		]
-	},
-	"_src": "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js"
+	"_isEnabled": true,
+	"_forceLoad": false,
+	"_loadTimeout": 10000
 }
