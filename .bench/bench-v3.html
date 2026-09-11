@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>adapt-mathJax bench &mdash; MathJax 3.2.2</title>
+
+<script>
+  // Config must be set BEFORE the library script loads. All three majors accept this.
+  window.MathJax = {};
+  window.__benchStart = performance.now();
+  window.__benchErrors = [];
+  window.addEventListener('error', function (e) {
+    window.__benchErrors.push(String(e.message));
+  });
+</script>
+
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #666; --rule: #d8d8d8; --bg: #fff;
+    --suspect: #fff4e5; --suspecthead: #f0a020; --head: #f2f2f2;
+  }
+  body {
+    margin: 0; padding: 16px;
+    /* Deliberately a plain body font at a normal size: baseline and size
+       matching can only be judged against ordinary body text. */
+    font: 16px/1.6 Georgia, 'Times New Roman', serif;
+    color: var(--ink); background: var(--bg);
+  }
+  h1 { font-size: 18px; margin: 0 0 2px; font-family: system-ui, sans-serif; }
+  .meta { font: 12px/1.5 ui-monospace, Consolas, monospace; color: var(--muted); margin-bottom: 4px; }
+  .meta code { background: #f4f4f4; padding: 1px 4px; }
+  .note { font: 12px/1.5 system-ui, sans-serif; color: var(--muted); margin-bottom: 10px; }
+  #status {
+    font: 12px/1.5 ui-monospace, Consolas, monospace; padding: 6px 8px;
+    background: #f4f4f4; border-left: 3px solid #999; margin-bottom: 12px;
+  }
+  #status.ready { border-left-color: #2a8; }
+  #status.failed { border-left-color: #c33; background: #fdeaea; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--rule); padding: 7px 9px; vertical-align: top; text-align: left; }
+  th { background: var(--head); font: 600 11px/1.4 system-ui, sans-serif; text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; }
+  .num { font: 11px ui-monospace, monospace; color: var(--muted); width: 30px; }
+  .src { width: 24%; }
+  .src code { font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+  .count { font: 10px system-ui, sans-serif; color: var(--muted); margin-left: 6px; }
+  .why { font: 11px/1.45 system-ui, sans-serif; color: #a05000; margin-top: 5px; }
+  .alone { width: 15%; }
+  .ctx { width: 34%; }
+  .verdict { width: 16%; }
+  .verdict textarea { width: 100%; box-sizing: border-box; font: 11px/1.4 system-ui, sans-serif; border: 1px solid var(--rule); padding: 4px; resize: vertical; }
+  tr.suspect { background: var(--suspect); }
+  tr.grouphead td { background: #e8e8e8; font: 600 12px system-ui, sans-serif; padding: 8px 9px; }
+  tr.suspecthead td { background: var(--suspecthead); color: #fff; }
+  /* MathJax 2 status bar: left visible deliberately. Recording whether it appears
+     is item 8 of the "what to record" list, so the plugin's display:none is NOT applied here. */
+</style>
+</head>
+<body>
+
+<h1>adapt-mathJax bench &mdash; MathJax 3.2.2</h1>
+<div class="meta"><code>https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js</code></div>
+<div class="meta">config: <code>{}</code></div>
+<div class="note">v3 defaults already include \(…\) and \[…\]. Note the es5/ path segment.</div>
+<div id="status">loading&hellip;</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Authored source</th>
+      <th>Alone</th>
+      <th>In its real sentence</th>
+      <th>Verdict</th>
+    </tr>
+  </thead>
+  <tbody>
+<tr class="grouphead"><td colspan="5">Baseline &mdash; should be identical in every version</td></tr>
+
+  <tr class="baseline">
+    <td class="num">1</td>
+    <td class="src"><code>\(A\)</code><span class="count">×2</span></td>
+    <td class="alone"><div class="render" data-render="\(A\)"></div></td>
+    <td class="ctx"><div class="render" data-render="The activity, \(A\), of a source is the rate at which radioactive decay occurs."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">2</td>
+    <td class="src"><code>\(\lambda\)</code><span class="count">×3</span></td>
+    <td class="alone"><div class="render" data-render="\(\lambda\)"></div></td>
+    <td class="ctx"><div class="render" data-render="This probability is described by the decay constant, \(\lambda\), which has the unit s<sup>-1</sup>."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">3</td>
+    <td class="src"><code>\(N\)</code></td>
+    <td class="alone"><div class="render" data-render="\(N\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<li>\(N\) = number of radioactive nuclei.</li>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">4</td>
+    <td class="src"><code>\(\alpha\)</code></td>
+    <td class="alone"><div class="render" data-render="\(\alpha\)"></div></td>
+    <td class="ctx"><div class="render" data-render="An&nbsp;alpha particle (symbol \(\alpha\)) is a composite particle consisting of two protons and two neutrons."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">5</td>
+    <td class="src"><code>\(\gamma\)</code></td>
+    <td class="alone"><div class="render" data-render="\(\gamma\)"></div></td>
+    <td class="ctx"><div class="render" data-render="Gamma rays (\(\gamma\)) are photons of high-energy electromagnetic radiation."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">6</td>
+    <td class="src"><code>\(t\)</code></td>
+    <td class="alone"><div class="render" data-render="\(t\)"></div></td>
+    <td class="ctx"><div class="render" data-render="…after an elapsed time, \(t\),&nbsp;can be calculated from the radioactive decay equation:"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">7</td>
+    <td class="src"><code>\(R\)</code></td>
+    <td class="alone"><div class="render" data-render="\(R\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<strong>Type and energy of radiation, \(R\)</strong>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">8</td>
+    <td class="src"><code>\(T_{1/2}\)</code><span class="count">×2</span></td>
+    <td class="alone"><div class="render" data-render="\(T_{1/2}\)"></div></td>
+    <td class="ctx"><div class="render" data-render="The half-life (\(T_{1/2}\)) of a radionuclide is the time required for the number of radioactive nuclei to decrease to one half."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">9</td>
+    <td class="src"><code>\(N_t\)</code></td>
+    <td class="alone"><div class="render" data-render="\(N_t\)"></div></td>
+    <td class="ctx"><div class="render" data-render="…the number or radioactive nuclei, \(N_t\),&nbsp;after an elapsed time…"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">10</td>
+    <td class="src"><code>\(N_0\)</code></td>
+    <td class="alone"><div class="render" data-render="\(N_0\)"></div></td>
+    <td class="ctx"><div class="render" data-render="where \(N_0\) is the initial number of nuclei."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">11</td>
+    <td class="src"><code>\(P_\gamma\)</code><span class="count">×2</span></td>
+    <td class="alone"><div class="render" data-render="\(P_\gamma\)"></div></td>
+    <td class="ctx"><div class="render" data-render="Each gamma-ray has a characteristic emission probability (or \(P_\gamma\) value); the main gamma-rays of lead-214 are emitted at approximately 242 keV (with \(P_\gamma\)&nbsp;values of approximately 7 %)."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">12</td>
+    <td class="src"><code>\(w_R\)</code><span class="count">×5</span></td>
+    <td class="alone"><div class="render" data-render="\(w_R\)"></div></td>
+    <td class="ctx"><div class="render" data-render="This is the absorbed dose multiplied by a radiation weighting factor (\(w_R\)); as examples, \(w_R\)&nbsp;= 20 for alpha particles and \(w_R\)&nbsp;= 1 for beta particles."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">13</td>
+    <td class="src"><code>\(w_T\)</code><span class="count">×3</span></td>
+    <td class="alone"><div class="render" data-render="\(w_T\)"></div></td>
+    <td class="ctx"><div class="render" data-render="…the effective dose is equal to the equivalent dose multiplied by \(w_T\)."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">14</td>
+    <td class="src"><code>\(\beta^-\)</code></td>
+    <td class="alone"><div class="render" data-render="\(\beta^-\)"></div></td>
+    <td class="ctx"><div class="render" data-render="A beta particle (\(\beta^-\)) is a high-energy electron emitted by certain radionuclides."></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">15</td>
+    <td class="src"><code>\(N_t = N_0e^{-\lambda t}\)</code></td>
+    <td class="alone"><div class="render" data-render="\(N_t = N_0e^{-\lambda t}\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<div style=&quot;text-align: center;&quot;>\(N_t = N_0e^{-\lambda t}\)</div>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">16</td>
+    <td class="src"><code>\(A_t = A_0e^{-\lambda t}\)</code></td>
+    <td class="alone"><div class="render" data-render="\(A_t = A_0e^{-\lambda t}\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<div style=&quot;text-align: center;&quot;>\(A_t = A_0e^{-\lambda t}\)</div>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">17</td>
+    <td class="src"><code>\(+ \ \alpha\)</code></td>
+    <td class="alone"><div class="render" data-render="\(+ \ \alpha\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<div style=&quot;text-align: center;&quot;><sup>238</sup>U&nbsp;&rarr;&nbsp;<sup>234</sup>Th \(+ \ \alpha\)</div>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="baseline">
+    <td class="num">18</td>
+    <td class="src"><code>\(\beta^- \ \gamma\)</code></td>
+    <td class="alone"><div class="render" data-render="\(\beta^- \ \gamma\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<div style=&quot;text-align: center;&quot;><sup>214</sup>Pb&nbsp;&rarr;&nbsp;<sup>214</sup>Bi&nbsp;+&nbsp;&nbsp;\(\beta^- \ \gamma\)</div>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+<tr class="grouphead suspecthead"><td colspan="5">The four suspect cases &mdash; the whole point of the exercise</td></tr>
+
+  <tr class="suspect">
+    <td class="num">S1</td>
+    <td class="src"><code>\(A = \lambda&amp;nbsp;N\)</code><span class="count">×2</span><div class="why">HTML entity <code>&amp;nbsp;</code> inside the maths delimiters.</div></td>
+    <td class="alone"><div class="render" data-render="\(A = \lambda&nbsp;N\)"></div></td>
+    <td class="ctx"><div class="render" data-render="Activity is related to the number of radioactive nuclei present through the equation:<div style=&quot;text-align: center;&quot;>\(A = \lambda&nbsp;N\)</div>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="suspect">
+    <td class="num">S2</td>
+    <td class="src"><code>\(T_{1/2}&amp;nbsp;= 4.5 × 10^9\)</code><div class="why">Entity <code>&amp;nbsp;</code> AND a literal U+00D7 MULTIPLICATION SIGN rather than <code>\times</code>.</div></td>
+    <td class="alone"><div class="render" data-render="\(T_{1/2}&nbsp;= 4.5 × 10^9\)"></div></td>
+    <td class="ctx"><div class="render" data-render="For example, uranium-238 (\(T_{1/2}&nbsp;= 4.5 × 10^9\)&nbsp;years) decays by alpha emission to thorium-234:"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="suspect">
+    <td class="num">S3</td>
+    <td class="src"><code>\(+ \&amp;nbsp;\beta^-\)</code><div class="why">A backslash immediately followed by the <code>&amp;nbsp;</code> entity &mdash; i.e. <code>\</code> + U+00A0 once the browser decodes it. In TeX <code>\&nbsp;</code> (backslash-space) is a control space; backslash-U+00A0 is not.</div></td>
+    <td class="alone"><div class="render" data-render="\(+ \&nbsp;\beta^-\)"></div></td>
+    <td class="ctx"><div class="render" data-render="<div style=&quot;text-align: center;&quot;><sup>210</sup>Bi&nbsp;&rarr;&nbsp;<sup>210</sup>Po \(+ \&nbsp;\beta^-\)</div>"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+
+  <tr class="suspect">
+    <td class="num">S4</td>
+    <td class="src"><code>\[&lt;br /&gt;\lambda = \frac{\ln2}{T_{1/2}}&lt;br /&gt;\]</code><div class="why"><code>&lt;br /&gt;</code> tags INSIDE the display delimiters. The delimiters and the maths are separated by element boundaries once parsed as HTML.</div></td>
+    <td class="alone"><div class="render" data-render="\[<br />\lambda = \frac{\ln2}{T_{1/2}}<br />\]"></div></td>
+    <td class="ctx"><div class="render" data-render="The relationship between the two parameters is described by this equation<br />\[<br />\lambda = \frac{\ln2}{T_{1/2}}<br />\]"></div></td>
+    <td class="verdict"><textarea rows="3" placeholder="render? glyphs? size? baseline? spacing?"></textarea></td>
+  </tr>
+  </tbody>
+</table>
+
+<script>
+(function () {
+  // Inject the authored strings as innerHTML, exactly as Adapt does. This is what
+  // makes the &nbsp; and <br /> cases real rather than theoretical: the browser
+  // decodes them into U+00A0 and <br> elements BEFORE MathJax ever sees them.
+  document.querySelectorAll('[data-render]').forEach(function (el) {
+    el.innerHTML = el.getAttribute('data-render');
+  });
+
+  var status = document.getElementById('status');
+
+  // Expected number of typeset outputs: every .render block holds at least one
+  // expression, and a few sentences hold more than one.
+  var EXPECTED = document.querySelectorAll('[data-render]').length;
+
+  function report (label, extra) {
+    var ms = Math.round(performance.now() - window.__benchStart);
+    var errs = window.__benchErrors;
+    var merrors = document.querySelectorAll('merror, .mjx-merror, [data-mjx-error]').length;
+
+    // Count actual typeset output across all three majors:
+    // v2 HTML-CSS emits .MathJax / .MathJax_Display; v3/v4 emit mjx-container.
+    var produced = document.querySelectorAll(
+      'mjx-container, .MathJax, .MathJax_Display, .MathJax_Preview + span'
+    ).length;
+
+    // Sanity check. Without this the bar reports a cheerful green when NOTHING
+    // typeset — which is exactly what a delimiter-escaping bug produces: the
+    // library loads, finds no delimiters, completes successfully, renders nothing.
+    // Build the pattern from String.raw via new RegExp rather than a literal: this
+    // whole script is emitted from a template literal in build-bench.js, and a
+    // regex literal's backslashes are eaten crossing that boundary. An earlier
+    // version became /(|[/ — matching every ordinary prose bracket like
+    // "(symbol \alpha)" — and reported PARTIAL on 7 perfectly typeset blocks.
+    // fromCharCode(92,92) is two backslashes: the first escapes the second for the
+    // regex engine. '[([]' is the class matching ( or [. Result: /\[([]/ —
+    // "a literal backslash followed by ( or [". A single 92 would build /[([]/,
+    // which is an unterminated group and throws.
+    var DELIM = new RegExp(String.fromCharCode(92, 92) + '[([]');
+    var leftoverDelims = 0;
+    document.querySelectorAll('[data-render]').forEach(function (el) {
+      if (DELIM.test(el.textContent)) leftoverDelims++;
+    });
+
+    var broken = errs.length || merrors || produced === 0 || leftoverDelims > 0;
+    status.className = broken ? 'failed' : 'ready';
+
+    var msg = label + ' — ' + ms + 'ms to first typeset' +
+      ' | typeset outputs: ' + produced + ' (from ' + EXPECTED + ' blocks)' +
+      ' | <merror>: ' + merrors +
+      ' | window errors: ' + errs.length +
+      (errs.length ? ' → ' + errs.join(' ; ') : '') +
+      (extra ? ' | ' + extra : '');
+
+    var BS = String.fromCharCode(92);
+    if (produced === 0) {
+      msg = 'NOTHING TYPESET — the library loaded and completed but produced no output. ' +
+            'Raw delimiters are still visible, so MathJax never saw valid ' +
+            BS + '( ' + BS + ') markers. ' + msg;
+    } else if (leftoverDelims > 0) {
+      msg = 'PARTIAL — ' + leftoverDelims + ' block(s) still show raw ' +
+            BS + '( or ' + BS + '[ delimiters. ' + msg;
+    }
+    status.textContent = msg;
+  }
+
+  var s = document.createElement('script');
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js";
+  s.async = true;
+  s.onerror = function () {
+    status.className = 'failed';
+    status.textContent = 'LIBRARY FAILED TO LOAD — ' + s.src;
+  };
+  s.onload = function () {
+    var MJ = window.MathJax;
+    if (MJ && typeof MJ.typesetPromise === 'function') {
+      // v3 / v4
+      MJ.startup.promise
+        .then(function () { return MJ.typesetPromise(); })
+        .then(function () { report('typeset complete (typesetPromise — v3/v4 adapter path)'); })
+        .catch(function (e) {
+          status.className = 'failed';
+          status.textContent = 'typesetPromise REJECTED: ' + e;
+        });
+    } else if (MJ && MJ.Hub) {
+      // v2 — Hub.Queue does not run until startup completes, so queueing is the readiness signal.
+      MJ.Hub.Queue(function () {
+        var bar = document.getElementById('MathJax_Message');
+        var visible = bar && getComputedStyle(bar).display !== 'none' && bar.offsetParent !== null;
+        report('typeset complete (Hub.Queue — v2 adapter path)',
+               '#MathJax_Message present: ' + (bar ? 'yes' : 'no') + (bar ? ', visible now: ' + (visible ? 'YES' : 'no') : ''));
+      });
+    } else {
+      status.className = 'failed';
+      status.textContent = 'no recognised MathJax API after load';
+    }
+  };
+  document.head.appendChild(s);
+})();
+</script>
+
+</body>
+</html>

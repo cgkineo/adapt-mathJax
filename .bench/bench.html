@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>adapt-mathJax &mdash; three-version bench</title>
+<style>
+  body { margin: 0; font: 13px/1.5 system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+  header { padding: 8px 12px; background: #1a1a1a; color: #fff; flex: none; }
+  header h1 { margin: 0 0 3px; font-size: 14px; }
+  header p { margin: 0; font-size: 11px; color: #bbb; }
+  .frames { flex: 1; display: flex; min-height: 0; }
+  .col { flex: 1; display: flex; flex-direction: column; border-left: 2px solid #1a1a1a; min-width: 0; }
+  .col:first-child { border-left: 0; }
+  .col h2 { margin: 0; padding: 5px 8px; font-size: 11px; background: #333; color: #fff; flex: none; text-transform: uppercase; letter-spacing: .05em; }
+  iframe { flex: 1; border: 0; width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>adapt-mathJax &mdash; three-version bench (Phase 0, item 1)</h1>
+  <p>Scroll each pane independently. Same corpus, same order, in all three. Suspect cases are the amber rows at the bottom. Also open each file standalone in Chrome, Edge, Firefox and Safari &mdash; the v2 result across those four is the answer to &ldquo;can Step 1 ship on MathJax 2&rdquo;.</p>
+</header>
+<div class="frames">
+  <div class="col"><h2>MathJax 2.7.2 &mdash; NPL's config</h2><iframe src="bench-v2.html"></iframe></div>
+  <div class="col"><h2>MathJax 3.2.2</h2><iframe src="bench-v3.html"></iframe></div>
+  <div class="col"><h2>MathJax 4.1.3</h2><iframe src="bench-v4.html"></iframe></div>
+</div>
+</body>
+</html>
