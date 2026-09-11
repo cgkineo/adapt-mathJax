@@ -1,0 +1,53 @@
+{
+  "$anchor": "mathJax-config",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "$patch": {
+    "source": {
+      "$ref": "config"
+    },
+    "with": {
+      "properties": {
+        "_mathJax": {
+          "type": "object",
+          "title": "MathJax",
+          "default": {},
+          "properties": {
+            "_isEnabled": {
+              "type": "boolean",
+              "title": "Enable MathJax",
+              "description": "Whether this course may load MathJax at all. Left enabled, the library is loaded only where the course content actually contains maths",
+              "default": true
+            },
+            "_forceLoad": {
+              "type": "boolean",
+              "title": "Always load MathJax",
+              "description": "Loads MathJax even where no maths is found in the course content. Only needed where equations are injected at runtime by another plugin, which the content scan cannot see",
+              "default": false
+            },
+            "_src": {
+              "type": "string",
+              "title": "Source",
+              "description": "Leave empty to use the MathJax version supplied with this plugin, which works offline. Set this only to load a different major version, and set In-line config to a matching configuration at the same time"
+            },
+            "_inlineConfig": {
+              "type": "object",
+              "title": "In-line config",
+              "description": "Leave empty to use the configuration supplied with this plugin. Set as window.MathJax before the library loads, so its shape is specific to the MathJax major version named by Source — set the two together or neither",
+              "inputType": {
+                "type": "CodeEditor",
+                "mode": "json"
+              }
+            },
+            "_loadTimeout": {
+              "type": "number",
+              "title": "Load timeout",
+              "description": "How long, in milliseconds, to wait for MathJax to become ready before giving up and continuing the course without typesetting",
+              "default": 10000
+            }
+          }
+        }
+      }
+    }
+  }
+}
