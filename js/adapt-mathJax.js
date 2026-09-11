@@ -1,89 +1,204 @@
-define([ "core/js/adapt" ], function(Adapt) {
+import Adapt from 'core/js/adapt';
+import data from 'core/js/data';
+import logging from 'core/js/logging';
+import wait from 'core/js/wait';
+import MathJaxLoader from './MathJaxLoader';
 
-	function loadScript(scriptObject, callback) {
-		var head = document.getElementsByTagName('head')[0];
-		var script = document.createElement('script');
+/**
+ * Matches the TeX delimiters MathJax is configured to recognise.
+ *
+ * Tested against JSON-serialised course data, where an authored `\(` appears as
+ * the two characters `\\` followed by `(` — hence the doubled escapes.
+ */
+const MATH_DELIMITERS = /\\\\\(|\\\\\[|\$\$/;
 
-		script.type = scriptObject.type || 'text/javascript';
+/** Coalescing window for ungated typeset requests. */
+const FLUSH_DELAY = 50;
 
-		if (scriptObject.src) {
-			script.src = scriptObject.src;
-		}
+class MathJax extends Backbone.Controller {
 
-		if (scriptObject.text) {
-			script.text = scriptObject.text;
-		}
+  initialize() {
+    this._adapter = null;
+    this._loading = null;
+    this._pending = new Set();
+    this._flushHandle = null;
+    this.listenToOnce(Adapt, 'app:dataReady', this.onDataReady);
+  }
 
-		if (callback) {
-			// Then bind the event to the callback function.
-			// There are several events for cross browser compatibility.
-			script.onreadystatechange = callback;
-			script.onload = callback;
-		}
+  get config() {
+    return Adapt.config.get('_mathJax');
+  }
 
-		// Append the <script> tag.
-		head.appendChild(script);
-	}
+  /**
+   * The plugin is installed in every course but used in few, so decide whether
+   * to load the library at all.
+   *
+   * The scan runs over the loaded course JSON rather than the DOM, which is
+   * what makes it safe: all content is present and nothing has rendered yet.
+   * `_isEnabled: true` forces a load, covering content injected at runtime by
+   * another plugin, which no static scan can see.
+   *
+   * @returns {boolean}
+   */
+  get shouldLoad() {
+    const config = this.config;
+    if (config?._isEnabled === false) return false;
+    if (config?._isEnabled === true) return true;
+    return MATH_DELIMITERS.test(JSON.stringify(data.toJSON()));
+  }
 
-	function setUpMathJax() {
-		Adapt.wait ? Adapt.wait.begin() : Adapt.trigger("plugin:beginWait");
+  onDataReady() {
+    if (!this.shouldLoad) return;
 
-		var config = Adapt.config.get("_mathJax");
-		var inlineConfig = config ? config._inlineConfig : {
-				"extensions": [ "tex2jax.js" ],
-				"jax": [ "input/TeX", "output/HTML-CSS" ]
-		};
-		var src = config ? config._src : "//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js";
+    // Deliberately not awaited and not wrapped in `wait` here: `app:dataReady`
+    // is itself followed by `await wait.queue()`, so holding the wait at this
+    // point would block app start on a CDN round trip. Each content object
+    // gates on the same promise at `preReady` instead, where the loading
+    // screen is already up.
+    this._loading = MathJaxLoader.load(this.config)
+      .then(adapter => (this._adapter = adapter))
+      .catch(error => {
+        logging.error(error);
+        this._adapter = null;
+      });
 
-		loadScript({ 
-			type: "text/x-mathjax-config",
-			text: "MathJax.Hub.Config(" + JSON.stringify(inlineConfig) + ");"
-		});
+    this.listenTo(Adapt, {
+      'pageView:preReady menuView:preReady': this.onContentObjectPreReady,
+      'blockView:postRender componentView:postRender': this.onViewPostRender,
+      'popup:opened': this.onPopupOpened,
+      'drawer:openedCustomView': this.onDrawerOpened,
+      'tutor:opened': this.onTutorOpened
+    });
+  }
 
-		loadScript({ src: 'assets/mathJaxInit.js' }, function() {
-			loadScript({ src: src }, function() {
-				Adapt.wait ? Adapt.wait.end() : Adapt.trigger("plugin:endWait");
-			});
-		});
-	}
+  /**
+   * Holds the loading screen until the content object has been typeset, so
+   * learners never see raw LaTeX resolve into equations.
+   *
+   * `contentObjectView.isReady` fires `preReady` and then awaits
+   * `wait.queue()`, so a synchronous `wait.begin()` here is honoured. The wait
+   * is released in every path, including failure — a dead CDN must degrade to
+   * un-typeset maths, never a stuck overlay.
+   *
+   * @param {ContentObjectView} view
+   */
+  async onContentObjectPreReady(view) {
+    wait.begin();
+    try {
+      await this.typeset([view.el]);
+    } catch (error) {
+      logging.error('adapt-mathJax: typeset failed', error);
+    } finally {
+      wait.end();
+    }
+  }
 
-	function onProcessMath() {
-		$(".loading").show();
-	}
+  /**
+   * Trickle-revealed blocks and any other dynamically rendered view. Ungated —
+   * the loading screen is down by this point.
+   *
+   * `postRender` rather than `view:childAdded`: `adaptView.addChildView` fires
+   * `childAdded` from inside `addChildren`'s loop, so the debounce could elapse
+   * while Adapt was still appending siblings. MathJax then walked a subtree
+   * that was being mutated underneath it and threw from inside its own render
+   * promise — out of band, where no `catch` here can reach it. `postRender`
+   * fires once the view and its children are in place.
+   *
+   * @param {AdaptView} view
+   */
+  onViewPostRender(view) {
+    this.queueTypeset(view.el);
+  }
 
-	function onEndProcess() {
-		Adapt.trigger("device:resize");
-		$(".loading").hide();
-	}
+  /**
+   * `popup:opened` also covers notify, whose view calls `a11y.popupOpened()`
+   * with a better-scoped element than a `notify:opened` handler would receive.
+   *
+   * Listening is safe: the deprecation in `core/js/a11y/popup.js` fires only
+   * when `ignoreInternalTrigger` is falsy, and core passes `true`. It
+   * deprecates *triggering* the event, not observing it.
+   *
+   * @param {jQuery} $element
+   */
+  onPopupOpened($element) {
+    this.queueTypeset($element?.[0]);
+  }
 
-	function onViewReady(view) {
-		$(".loading").show();
+  onDrawerOpened() {
+    this.queueTypeset($('.js-drawer-holder')[0]);
+  }
 
-		function checkForMathJax() {
-			if (!window.MathJax || !window.MathJax.Hub) {
-				window.setTimeout(checkForMathJax, 200);
-			} else {
-				var Hub = window.MathJax.Hub;
-				Hub.Queue([ "Typeset", Hub, view.el ]);
-			}
-		}
+  /**
+   * Inline tutor feedback. The first argument is the *parent* view, not the
+   * tutor view. The notify variant's feedback is not inside the parent's
+   * element, but `popup:opened` already covers that case.
+   *
+   * @param {AdaptView} parentView
+   */
+  onTutorOpened(parentView) {
+    this.queueTypeset(parentView?.el);
+  }
 
-		checkForMathJax();
-	}
+  /**
+   * Collects elements into a set and flushes them as one scoped pass, rather
+   * than re-typesetting the whole document per event. Several blocks revealed
+   * in the same tick cost one typeset.
+   *
+   * @param {HTMLElement} [element]
+   */
+  queueTypeset(element) {
+    if (!element) return;
+    this._pending.add(element);
+    if (this._flushHandle) return;
+    this._flushHandle = setTimeout(() => {
+      this._flushHandle = null;
+      const elements = [...this._pending];
+      this._pending.clear();
+      this.typeset(elements).catch(error => logging.error('adapt-mathJax: typeset failed', error));
+    }, FLUSH_DELAY);
+  }
 
-	function onPopupOpened($element) {
-		var Hub = window.MathJax.Hub;
+  /**
+   * Typesets the given elements, discarding any that have since been removed
+   * from the document — a trickle block can be revealed and destroyed inside
+   * one flush window.
+   *
+   * Awaits the library first, so a popup opened before MathJax has loaded
+   * typesets once it arrives instead of throwing. This was the cause of the
+   * unguarded `window.MathJax.Hub` TypeError in 0.2.2.
+   *
+   * @param {Array<HTMLElement>} elements
+   * @returns {Promise}
+   */
+  async typeset(elements) {
+    await this._loading;
+    if (!this._adapter) return;
+    const attached = elements.filter(element => element?.isConnected);
+    // Drop any element contained by another in the same pass. A block and the
+    // components inside it both fire `postRender`, so a flush routinely holds
+    // both; MathJax then typesets the parent, rewriting its text nodes, and
+    // reaches the child holding an offset into a node that no longer matches —
+    // `IndexSizeError: Failed to execute 'splitText'`. Typesetting the
+    // outermost element alone covers every descendant anyway.
+    const outermost = attached.filter(element =>
+      !attached.some(other => other !== element && other.contains(element))
+    );
+    if (!outermost.length) return;
+    await this._adapter.typeset(outermost);
 
-		if ($element) $element = $element[0];
+    // Typesetting changes element dimensions, so dependent components need to
+    // recalculate. Isolated from the typeset above: this dispatches synchronously
+    // into every listener in the course, and a component that throws while
+    // handling it would otherwise surface as 'adapt-mathJax: typeset failed',
+    // sending whoever reads the log to the wrong plugin. The typeset itself has
+    // already succeeded by this point.
+    try {
+      Adapt.trigger('device:resize');
+    } catch (error) {
+      logging.warn('adapt-mathJax: a device:resize listener threw after typesetting', error);
+    }
+  }
 
-		Hub.Queue([ "Typeset", Hub, $element ]);
-	}
+}
 
-	Adapt.once("app:dataReady", setUpMathJax).on({
-		"mathJax:processMath": onProcessMath,
-		"mathJax:endProcess": onEndProcess,
-		"menuView:ready pageView:ready": onViewReady,
-		"popup:opened": onPopupOpened
-	});
-
-});
+export default new MathJax();
