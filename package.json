@@ -1,6 +1,6 @@
 {
   "name": "adapt-mathJax",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "framework": ">=5.46.4",
   "homepage": "https://github.com/cgkineo/adapt-mathJax",
   "bugs": "https://github.com/cgkineo/adapt-mathJax/issues",
