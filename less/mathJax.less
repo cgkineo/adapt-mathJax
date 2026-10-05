@@ -1,3 +1,43 @@
+// MathJax 2 status bar. Retained because non-stock courses still load v2;
+// v4 has no equivalent element.
 #MathJax_Message {
-	display: none;
+  display: none;
+}
+
+// MathJax 3/4 output. Rendered maths should read as part of the surrounding
+// text rather than as an image dropped into it.
+mjx-container {
+  font-size: inherit;
+
+  // MathJax emits LTR output regardless of page direction; keep the container
+  // itself in the reading direction so display equations align correctly.
+  .dir-rtl & {
+    direction: rtl;
+
+    > mjx-math {
+      direction: ltr;
+      text-align: left;
+    }
+  }
+}
+
+// Display equations: scroll within the container rather than widening the page.
+mjx-container[display='true'] {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+// Inline equations are left as MathJax renders them. `inline-block` was tried
+// so the container could take a `max-width`, but it derives its baseline from
+// the box rather than the glyphs and drops short expressions ~5px off the text
+// baseline — visible in running prose, and worse than the problem it solved.
+// Measured against adjacent text, native inline sits within 1px.
+//
+// Containment is handled on the inner element instead, which can shrink without
+// affecting how the container sits on the line.
+mjx-container:not([display='true']) > mjx-math {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
